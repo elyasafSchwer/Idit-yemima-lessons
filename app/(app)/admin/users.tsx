@@ -7,6 +7,7 @@ import {
 } from 'react-native-paper';
 import { supabase } from '@/lib/supabase';
 import { goBack } from '@/lib/navigation';
+import BackAction from '@/components/BackAction';
 import HeaderTitle from '@/components/HeaderTitle';
 import { useAuth } from '@/context/auth';
 import { colors } from '@/lib/theme';
@@ -135,7 +136,7 @@ export default function AdminUsers() {
   return (
     <View style={styles.flex}>
       <Appbar.Header elevated>
-        <Appbar.BackAction onPress={() => goBack(router, '/(app)/admin')} />
+        <BackAction onPress={() => goBack(router, '/(app)/admin')} />
         <Appbar.Content title={<HeaderTitle title="הרשאות תלמידות" subtitle={`${rows.length} משתמשות`} />} />
       </Appbar.Header>
 

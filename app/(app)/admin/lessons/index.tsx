@@ -2,10 +2,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { useFocusEffect, useRouter, Redirect } from 'expo-router';
 import {
-  Appbar, Card, Text, Button, ActivityIndicator, Snackbar, Divider, Switch, SegmentedButtons,
+  Appbar, Card, Text, Button, ActivityIndicator, Snackbar, Divider, SegmentedButtons,
 } from 'react-native-paper';
 import { supabase } from '@/lib/supabase';
+import Toggle from '@/components/Toggle';
 import { goBack } from '@/lib/navigation';
+import BackAction from '@/components/BackAction';
 import { useAuth } from '@/context/auth';
 import { retryIngest } from '@/lib/ingest';
 import { CATEGORIES, CATEGORY_LABEL, CATEGORY_ITEM, type Category } from '@/lib/categories';
@@ -108,7 +110,7 @@ export default function ManageLessons() {
   return (
     <View style={styles.flex}>
       <Appbar.Header elevated>
-        <Appbar.BackAction onPress={() => goBack(router, '/(app)/admin')} />
+        <BackAction onPress={() => goBack(router, '/(app)/admin')} />
         <Appbar.Content title="ניהול שיעורים" />
         <Appbar.Action icon="refresh" onPress={onRefresh} />
       </Appbar.Header>
@@ -183,7 +185,7 @@ export default function ManageLessons() {
                         <Text style={styles.muted}>יופיע אחרי שההקלטה תהיה מוכנה</Text>
                       )}
                     </View>
-                    <Switch
+                    <Toggle
                       value={visible}
                       disabled={disabled || (!visible && s.state !== 'ready')}
                       onValueChange={(on) => update(
@@ -201,7 +203,7 @@ export default function ManageLessons() {
                         {lesson.is_free ? 'גם בלי הרשאה' : 'רק לתלמידות עם הרשאה'}
                       </Text>
                     </View>
-                    <Switch
+                    <Toggle
                       value={lesson.is_free}
                       disabled={disabled}
                       onValueChange={(on) => update(

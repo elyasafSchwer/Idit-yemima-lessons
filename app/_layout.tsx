@@ -31,6 +31,16 @@ if (Platform.OS === 'web') {
   if (typeof document !== 'undefined') {
     document.documentElement.lang = 'he';
     document.documentElement.dir = 'rtl';
+    // react-native-web reports isRTL=false, so react-native-paper gives every
+    // Text an inline `direction: ltr` and `text-align: left` (the rnw atomic
+    // class below). Hebrew then hugs the left edge and punctuation lands on
+    // the wrong side. Undo both on web; native is flipped by the OS.
+    const style = document.createElement('style');
+    style.textContent = `
+      html[dir="rtl"] [style*="direction: ltr"] { direction: rtl !important; }
+      html[dir="rtl"] .r-textAlign-fdjqy7 { text-align: right; }
+    `;
+    document.head.appendChild(style);
   }
   if (typeof window !== 'undefined' && !AUTH_PATHS.includes(window.location.pathname)) {
     pendingDeepLink = window.location.pathname + window.location.search;

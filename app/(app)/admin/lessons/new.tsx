@@ -3,11 +3,13 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 're
 import { useRouter, Redirect, useLocalSearchParams } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import {
-  Appbar, TextInput, Button, Card, Text, IconButton, Switch,
+  Appbar, TextInput, Button, Card, Text, IconButton,
   HelperText, ProgressBar, Divider, SegmentedButtons,
 } from 'react-native-paper';
 import { supabase } from '@/lib/supabase';
+import Toggle from '@/components/Toggle';
 import { goBack } from '@/lib/navigation';
+import BackAction from '@/components/BackAction';
 import HeaderTitle from '@/components/HeaderTitle';
 import { useAuth } from '@/context/auth';
 import { dispatchIngest, type TrackKind } from '@/lib/ingest';
@@ -161,7 +163,7 @@ export default function NewLesson() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <Appbar.Header elevated>
-        <Appbar.BackAction onPress={() => goBack(router, '/(app)/admin/lessons')} />
+        <BackAction onPress={() => goBack(router, '/(app)/admin/lessons')} />
         <Appbar.Content
           title={(
             <HeaderTitle
@@ -195,7 +197,7 @@ export default function NewLesson() {
 
             <View style={styles.switchRow}>
               <Text variant="bodyLarge">פתוח לכולן בחינם</Text>
-              <Switch value={isFree} onValueChange={setIsFree} />
+              <Toggle value={isFree} onValueChange={setIsFree} />
             </View>
             <Divider />
           </>
