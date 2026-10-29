@@ -1,13 +1,13 @@
 import 'react-native-gesture-handler';
 import { useEffect } from 'react';
-import { I18nManager, Platform } from 'react-native';
+import { I18nManager, Platform, StyleSheet, View } from 'react-native';
 import { Stack, SplashScreen } from 'expo-router';
 import * as Updates from 'expo-updates';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { PaperProvider, ActivityIndicator } from 'react-native-paper';
 import { setAudioModeAsync } from 'expo-audio';
 import { AuthProvider, useAuth } from '@/context/auth';
-import { theme } from '@/lib/theme';
+import { theme, colors } from '@/lib/theme';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -72,16 +72,34 @@ function RootNavigator() {
   }
 
   return (
-    // BOTH groups must be guarded. Guarding only (auth) leaves (app) mounted
-    // for everyone, so a signed-out visitor lands on the catalogue and sits on
-    // a spinner while RLS refuses the query.
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Protected guard={!session}>
-        <Stack.Screen name="(auth)" />
-      </Stack.Protected>
-      <Stack.Protected guard={!!session}>
-        <Stack.Screen name="(app)" />
-      </Stack.Protected>
-    </Stack>
+    // On a wide browser window every screen would stretch edge to edge, so the
+    // web build keeps one phone-like column in the middle. Native is unaffected.
+    <View style={styles.page}>
+      <View style={styles.column}>
+        {/* BOTH groups must be guarded. Guarding only (auth) leaves (app) mounted
+            for everyone, so a signed-out visitor lands on the catalogue and sits
+            on a spinner while RLS refuses the query. */}
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Protected guard={!session}>
+            <Stack.Screen name="(auth)" />
+          </Stack.Protected>
+          <Stack.Protected guard={!!session}>
+            <Stack.Screen name="(app)" />
+          </Stack.Protected>
+        </Stack>
+      </View>
+    </View>
   );
 }
+
+const WEB_COLUMN = 600;
+
+const styles = StyleSheet.create({
+  page: { flex: 1, backgroundColor: Platform.OS === 'web' ? '#EADCCD' : colors.background },
+  column: Platform.OS === 'web'
+    ? {
+      flex: 1, width: '100%', maxWidth: WEB_COLUMN, alignSelf: 'center',
+      backgroundColor: colors.background, overflow: 'hidden',
+    }
+    : { flex: 1 },
+});

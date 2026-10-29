@@ -107,8 +107,10 @@ jobs:
             -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
             -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
             -H "Content-Type: application/json" -d "$BODY" -o /dev/null
+          # Only a lesson that is not live yet is marked failed: a broken summary
+          # upload must not hide a lesson students are already listening to.
           if [ "$OUTCOME" != "success" ]; then
-            curl -sS -X PATCH "$SUPABASE_URL/rest/v1/lessons?id=eq.$LESSON" \
+            curl -sS -X PATCH "$SUPABASE_URL/rest/v1/lessons?id=eq.$LESSON&status=eq.processing" \
               -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
               -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
               -H "Content-Type: application/json" -d '{"status":"failed"}' -o /dev/null

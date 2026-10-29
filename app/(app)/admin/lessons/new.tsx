@@ -1,13 +1,15 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
-import { useRouter, Redirect } from 'expo-router';
+import { useRouter, Redirect, useLocalSearchParams } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import {
   Appbar, TextInput, Button, Card, Text, IconButton, Switch,
-  SegmentedButtons, HelperText, ProgressBar, Divider,
+  HelperText, ProgressBar, Divider,
 } from 'react-native-paper';
 import { supabase } from '@/lib/supabase';
+import HeaderTitle from '@/components/HeaderTitle';
 import { useAuth } from '@/context/auth';
+import { dispatchIngest, type TrackKind } from '@/lib/ingest';
 import { colors } from '@/lib/theme';
 
 type Part = { uri: string; name: string; size: number | null };
@@ -15,16 +17,29 @@ type Part = { uri: string; name: string; size: number | null };
 export default function NewLesson() {
   const { isAdmin } = useAuth();
   const router = useRouter();
+  // With a lessonId this screen adds a recording (usually the summary) to an
+  // existing lesson, or replaces one, instead of creating a lesson.
+  const params = useLocalSearchParams<{ lessonId?: string; kind?: TrackKind }>();
+  const existingId = params.lessonId ?? null;
+  const [existingTitle, setExistingTitle] = useState<string | null>(null);
 
   const [number, setNumber] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [isFree, setIsFree] = useState(false);
-  const [kind, setKind] = useState<'full' | 'summary'>('full');
+  // A new lesson starts with its full recording; the summary is added later
+  // from the manage screen, once the lesson exists.
+  const kind: TrackKind = params.kind === 'summary' ? 'summary' : 'full';
   const [parts, setParts] = useState<Part[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!existingId) return;
+    supabase.from('lessons').select('title').eq('id', existingId).single()
+      .then(({ data }) => setExistingTitle(data?.title ?? ''));
+  }, [existingId]);
 
   if (!isAdmin) return <Redirect href="/(app)/lessons" />;
 
@@ -54,26 +69,41 @@ export default function NewLesson() {
   };
 
   const submit = async () => {
-    if (!title.trim()) { setError('צריך כותרת לשיעור'); return; }
+    if (!existingId && !title.trim()) { setError('צריך כותרת לשיעור'); return; }
     if (parts.length === 0) { setError('צריך לבחור לפחות הקלטה אחת'); return; }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { setError('תאריך בפורמט YYYY-MM-DD'); return; }
+    if (!existingId && !/^\d{4}-\d{2}-\d{2}$/.test(date)) { setError('תאריך בפורמט YYYY-MM-DD'); return; }
 
     setError(null);
     setProgress(0);
     try {
-      const { data: lesson, error: lessonErr } = await supabase
-        .from('lessons')
-        .insert({
-          lesson_number: number ? Number(number) : null,
-          title: title.trim(),
-          description: description.trim() || null,
-          lesson_date: date,
-          is_free: isFree,
-          status: 'processing',
-        })
-        .select('id')
-        .single();
-      if (lessonErr || !lesson) throw lessonErr ?? new Error('lesson insert failed');
+      let lesson: { id: string };
+      if (existingId) {
+        lesson = { id: existingId };
+        // The pipeline merges every object under the prefix, so parts left
+        // from an earlier upload would be stitched into this one.
+        const prefix = `${existingId}/${kind}`;
+        const { data: old } = await supabase.storage.from('incoming').list(prefix);
+        if (old && old.length > 0) {
+          const { error: rmErr } = await supabase.storage
+            .from('incoming').remove(old.map((o) => `${prefix}/${o.name}`));
+          if (rmErr) throw rmErr;
+        }
+      } else {
+        const { data, error: lessonErr } = await supabase
+          .from('lessons')
+          .insert({
+            lesson_number: number ? Number(number) : null,
+            title: title.trim(),
+            description: description.trim() || null,
+            lesson_date: date,
+            is_free: isFree,
+            status: 'processing',
+          })
+          .select('id')
+          .single();
+        if (lessonErr || !data) throw lessonErr ?? new Error('lesson insert failed');
+        lesson = data;
+      }
 
       // Raw parts land in `incoming`; the pipeline merges, transcodes and
       // encrypts them into `lessons`. Uploading in order keeps the index
@@ -104,16 +134,17 @@ export default function NewLesson() {
 
       // Hand off to the GitHub Actions pipeline. A failure here is reported on
       // the job row, so the lesson does not sit on "processing" silently.
-      const { error: dispatchErr } = await supabase.functions.invoke('ingest-dispatch', {
-        body: { lessonId: lesson.id, kind },
-      });
+      const { error: dispatchErr } = await dispatchIngest(lesson.id, kind);
       if (dispatchErr) {
         setProgress(null);
-        setError('ההקלטות הועלו, אבל העיבוד לא הופעל. אפשר להפעיל אותו שוב ממסך הניהול.');
+        setError('ההקלטות הועלו, אבל העיבוד לא הופעל. אפשר ללחוץ "נסי שוב" במסך ניהול השיעורים.');
         return;
       }
 
-      router.replace('/(app)/admin');
+      // Coming from the manage screen, go back to it rather than stacking a
+      // second copy on top.
+      if (existingId) router.back();
+      else router.replace('/(app)/admin/lessons');
     } catch (e) {
       setProgress(null);
       setError(e instanceof Error ? e.message : 'ההעלאה נכשלה');
@@ -129,45 +160,46 @@ export default function NewLesson() {
     >
       <Appbar.Header elevated>
         <Appbar.BackAction onPress={() => router.back()} />
-        <Appbar.Content title="שיעור חדש" />
+        <Appbar.Content
+          title={(
+            <HeaderTitle
+              title={existingId ? (kind === 'summary' ? 'העלאת סיכום' : 'העלאת הקלטה') : 'שיעור חדש'}
+              subtitle={existingTitle}
+            />
+          )}
+        />
       </Appbar.Header>
 
       <ScrollView contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
-        <SegmentedButtons
-          value={kind}
-          onValueChange={(v) => setKind(v as 'full' | 'summary')}
-          buttons={[
-            { value: 'full', label: 'שיעור מלא' },
-            { value: 'summary', label: 'סיכום' },
-          ]}
-        />
+        {!existingId && (
+          <>
+            <View style={styles.row}>
+              <TextInput
+                mode="outlined" label="מס׳" value={number} onChangeText={setNumber}
+                keyboardType="number-pad" style={styles.numberInput}
+              />
+              <TextInput
+                mode="outlined" label="כותרת" value={title} onChangeText={setTitle}
+                style={styles.flexInput}
+              />
+            </View>
 
-        <View style={styles.row}>
-          <TextInput
-            mode="outlined" label="מס׳" value={number} onChangeText={setNumber}
-            keyboardType="number-pad" style={styles.numberInput}
-          />
-          <TextInput
-            mode="outlined" label="כותרת" value={title} onChangeText={setTitle}
-            style={styles.flexInput}
-          />
-        </View>
+            <TextInput
+              mode="outlined" label="תיאור קצר" value={description} onChangeText={setDescription}
+              multiline numberOfLines={3}
+            />
+            <TextInput
+              mode="outlined" label="תאריך השיעור" value={date} onChangeText={setDate}
+              placeholder="2026-10-19" autoCapitalize="none"
+            />
 
-        <TextInput
-          mode="outlined" label="תיאור קצר" value={description} onChangeText={setDescription}
-          multiline numberOfLines={3}
-        />
-        <TextInput
-          mode="outlined" label="תאריך השיעור" value={date} onChangeText={setDate}
-          placeholder="2026-10-19" autoCapitalize="none"
-        />
-
-        <View style={styles.switchRow}>
-          <Text variant="bodyLarge">פתוח לכולן בחינם</Text>
-          <Switch value={isFree} onValueChange={setIsFree} />
-        </View>
-
-        <Divider />
+            <View style={styles.switchRow}>
+              <Text variant="bodyLarge">פתוח לכולן בחינם</Text>
+              <Switch value={isFree} onValueChange={setIsFree} />
+            </View>
+            <Divider />
+          </>
+        )}
 
         <View style={styles.switchRow}>
           <Text variant="titleSmall">

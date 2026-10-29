@@ -6,6 +6,7 @@ import {
 } from 'react-native-paper';
 import { useAuth } from '@/context/auth';
 import { supabase } from '@/lib/supabase';
+import HeaderTitle from '@/components/HeaderTitle';
 import { colors, WHATSAPP_URL } from '@/lib/theme';
 
 type Lesson = {
@@ -51,9 +52,14 @@ export default function Lessons() {
   return (
     <View style={styles.flex}>
       <Appbar.Header elevated>
-        <Appbar.Content title="השיעורים" subtitle={username ?? undefined} />
+        <Appbar.Content title={<HeaderTitle title="השיעורים" subtitle={username} />} />
         {isAdmin && (
-          <Appbar.Action icon="cog" onPress={() => router.push('/(app)/admin')} />
+          <Button
+            mode="contained-tonal" icon="cog" compact style={styles.adminButton}
+            onPress={() => router.push('/(app)/admin')}
+          >
+            ניהול
+          </Button>
         )}
         <Appbar.Action icon="logout" onPress={signOut} />
       </Appbar.Header>
@@ -138,6 +144,7 @@ const styles = StyleSheet.create({
   list: { padding: 16, gap: 12 },
   card: { backgroundColor: colors.surface, borderRadius: 16 },
   chips: { flexDirection: 'row', gap: 6, marginEnd: 12 },
+  adminButton: { marginEnd: 4 },
   accessBar: { paddingVertical: 6, paddingHorizontal: 16, backgroundColor: colors.primaryDark },
   accessText: { color: '#fff', textAlign: 'center' },
   loader: { marginTop: 48 },

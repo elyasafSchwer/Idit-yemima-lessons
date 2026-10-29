@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter, useFocusEffect, Redirect } from 'expo-router';
-import { Appbar, Card, Text, Badge, ActivityIndicator } from 'react-native-paper';
+import { Appbar, Card, Text, Badge, ActivityIndicator, Avatar } from 'react-native-paper';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth';
 import { colors } from '@/lib/theme';
@@ -9,7 +9,7 @@ import { colors } from '@/lib/theme';
 export default function AdminHome() {
   const { isAdmin } = useAuth();
   const router = useRouter();
-  const [stats, setStats] = useState({ lessons: 0, students: 0, active: 0, expiring: 0, failed: 0 });
+  const [stats, setStats] = useState({ lessons: 0, students: 0, active: 0, expiring: 0, failed: 0, processing: 0 });
   const [loading, setLoading] = useState(true);
 
   useFocusEffect(useCallback(() => {
@@ -17,13 +17,14 @@ export default function AdminHome() {
     (async () => {
       const soon = new Date(Date.now() + 30 * 86400_000).toISOString();
       const now = new Date().toISOString();
-      const [lessons, students, active, expiring, failed] = await Promise.all([
+      const [lessons, students, active, expiring, failed, processing] = await Promise.all([
         supabase.from('lessons').select('id', { count: 'exact', head: true }),
         supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'student'),
         supabase.from('entitlements').select('id', { count: 'exact', head: true }).gt('expires_at', now),
         supabase.from('entitlements').select('id', { count: 'exact', head: true })
           .gt('expires_at', now).lt('expires_at', soon),
         supabase.from('ingest_jobs').select('id', { count: 'exact', head: true }).eq('status', 'failed'),
+        supabase.from('ingest_jobs').select('id', { count: 'exact', head: true }).eq('status', 'processing'),
       ]);
       if (cancelled) return;
       setStats({
@@ -32,6 +33,7 @@ export default function AdminHome() {
         active: active.count ?? 0,
         expiring: expiring.count ?? 0,
         failed: failed.count ?? 0,
+        processing: processing.count ?? 0,
       });
       setLoading(false);
     })();
@@ -57,12 +59,37 @@ export default function AdminHome() {
             <Stat label="הרשאות פעילות" value={stats.active} />
           </View>
 
+          {stats.failed > 0 && (
+            <Card style={[styles.card, styles.failedCard]} onPress={() => router.push('/(app)/admin/lessons')}>
+              <Card.Title
+                title={`${stats.failed} העלאות נכשלו`}
+                subtitle="לחצי כדי לנסות שוב"
+                titleStyle={{ color: colors.error }}
+                left={(p) => <Avatar.Icon {...p} icon="alert" color="#fff" style={{ backgroundColor: colors.error }} />}
+              />
+            </Card>
+          )}
+
           <Card style={styles.card} onPress={() => router.push('/(app)/admin/lessons/new')}>
-            <Card.Title title="העלאת שיעור חדש" subtitle="הקלטות וואטסאפ, לפי סדר" left={() => <Text style={styles.icon}>＋</Text>} />
+            <Card.Title
+              title="העלאת שיעור חדש" subtitle="הקלטות וואטסאפ, לפי סדר"
+              left={(p) => <Avatar.Icon {...p} icon="plus" />}
+            />
+          </Card>
+
+          <Card style={styles.card} onPress={() => router.push('/(app)/admin/lessons')}>
+            <Card.Title
+              title="ניהול שיעורים"
+              subtitle={stats.processing > 0
+                ? `${stats.processing} בעיבוד עכשיו`
+                : 'העלאת סיכום, החלפת הקלטה, ניסיון חוזר'}
+              left={(p) => <Avatar.Icon {...p} icon="playlist-music" />}
+            />
           </Card>
 
           <Card style={styles.card} onPress={() => router.push('/(app)/admin/users')}>
             <Card.Title
+              left={(p) => <Avatar.Icon {...p} icon="account-key" />}
               title="הרשאות תלמידות"
               subtitle={stats.expiring > 0
                 ? `${stats.expiring} הרשאות פגות בחודש הקרוב`
@@ -72,16 +99,6 @@ export default function AdminHome() {
                 : null}
             />
           </Card>
-
-          {stats.failed > 0 && (
-            <Card style={[styles.card, styles.failedCard]}>
-              <Card.Title
-                title={`${stats.failed} העלאות נכשלו`}
-                subtitle="צריך לנסות שוב"
-                titleStyle={{ color: colors.error }}
-              />
-            </Card>
-          )}
         </ScrollView>
       )}
     </View>
@@ -109,6 +126,5 @@ const styles = StyleSheet.create({
   card: { backgroundColor: colors.surface, borderRadius: 16 },
   failedCard: { borderWidth: 1, borderColor: colors.error },
   badge: { marginEnd: 16, alignSelf: 'center' },
-  icon: { fontSize: 24, color: colors.primary },
   loader: { marginTop: 64 },
 });

@@ -6,6 +6,7 @@ import {
   TextInput, ActivityIndicator, Snackbar, HelperText, IconButton,
 } from 'react-native-paper';
 import { supabase } from '@/lib/supabase';
+import HeaderTitle from '@/components/HeaderTitle';
 import { useAuth } from '@/context/auth';
 import { colors } from '@/lib/theme';
 
@@ -118,7 +119,7 @@ export default function AdminUsers() {
     <View style={styles.flex}>
       <Appbar.Header elevated>
         <Appbar.BackAction onPress={() => router.back()} />
-        <Appbar.Content title="הרשאות תלמידות" subtitle={`${rows.length} משתמשות`} />
+        <Appbar.Content title={<HeaderTitle title="הרשאות תלמידות" subtitle={`${rows.length} משתמשות`} />} />
       </Appbar.Header>
 
       <Searchbar
