@@ -63,7 +63,9 @@ if ls "$WORK/out" | grep -qiE '\.key$'; then
   echo "FATAL: a key file ended up in the output directory" >&2; exit 1
 fi
 
-DURATION="$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$WORK/out/index.m3u8" | cut -d. -f1)"
+# Sum the #EXTINF segment lengths instead of running ffprobe on the playlist:
+# ffprobe would try to fetch the placeholder key URL and fail.
+DURATION="$(awk -F'[:,]' '/^#EXTINF:/ { s += $2 } END { printf "%d", s }' "$WORK/out/index.m3u8")"
 SEGMENTS="$(ls "$WORK/out"/*.ts | wc -l | tr -d ' ')"
 PREFIX="$LESSON/$KIND"
 echo "==> ${DURATION}s, ${SEGMENTS} segments -> $BUCKET/$PREFIX"
