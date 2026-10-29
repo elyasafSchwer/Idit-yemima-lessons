@@ -56,10 +56,16 @@ jobs:
             -d "{\"prefix\":\"$LESSON/$KIND/\",\"limit\":100,\"sortBy\":{\"column\":\"name\",\"order\":\"asc\"}}" \
             | python3 -c "import sys,json; [print(o['name']) for o in json.load(sys.stdin)]" > names.txt
           test -s names.txt || { echo "no parts found for $LESSON/$KIND"; exit 1; }
+          # Older uploads kept the WhatsApp filename ("WhatsApp Audio ... .ogg"),
+          # so names are URL-encoded and saved locally as <index>.<ext>.
+          i=0
           while read -r n; do
             echo "downloading $n"
-            curl -sS -f "$SUPABASE_URL/storage/v1/object/incoming/$LESSON/$KIND/$n" \
-              -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" -o "parts/$n"
+            enc=$(python3 -c "import sys,urllib.parse; print(urllib.parse.quote(sys.argv[1]))" "$n")
+            ext="${n##*.}"
+            curl -sS -f "$SUPABASE_URL/storage/v1/object/incoming/$LESSON/$KIND/$enc" \
+              -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" -o "parts/$(printf '%03d' "$i").$ext"
+            i=$((i + 1))
           done < names.txt
           ls -la parts
 

@@ -81,7 +81,10 @@ export default function NewLesson() {
       const uploaded: string[] = [];
       for (let i = 0; i < parts.length; i++) {
         const p = parts[i];
-        const path = `${lesson.id}/${kind}/${String(i).padStart(2, '0')}-${p.name}`;
+        // WhatsApp names contain spaces, which break the pipeline's URLs.
+        // The index alone carries the order; keep only the extension.
+        const ext = p.name.includes('.') ? p.name.split('.').pop()!.toLowerCase() : 'ogg';
+        const path = `${lesson.id}/${kind}/${String(i).padStart(2, '0')}.${ext}`;
         const body = await (await fetch(p.uri)).blob();
         const { error: upErr } = await supabase.storage
           .from('incoming')
