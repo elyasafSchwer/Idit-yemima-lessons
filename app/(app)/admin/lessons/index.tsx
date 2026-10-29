@@ -5,6 +5,7 @@ import {
   Appbar, Card, Text, Button, Chip, ActivityIndicator, Snackbar, Divider,
 } from 'react-native-paper';
 import { supabase } from '@/lib/supabase';
+import { goBack } from '@/lib/navigation';
 import { useAuth } from '@/context/auth';
 import { retryIngest, type TrackKind } from '@/lib/ingest';
 import { colors } from '@/lib/theme';
@@ -99,7 +100,7 @@ export default function ManageLessons() {
   return (
     <View style={styles.flex}>
       <Appbar.Header elevated>
-        <Appbar.BackAction onPress={() => router.back()} />
+        <Appbar.BackAction onPress={() => goBack(router, '/(app)/admin')} />
         <Appbar.Content title="ניהול שיעורים" />
         <Appbar.Action icon="refresh" onPress={onRefresh} />
       </Appbar.Header>

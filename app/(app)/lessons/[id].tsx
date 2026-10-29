@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { Appbar, Text, Chip, ActivityIndicator, Divider } from 'react-native-paper';
 import { supabase } from '@/lib/supabase';
+import { goBack } from '@/lib/navigation';
 import { useAuth } from '@/context/auth';
 import LessonPlayer from '@/components/LessonPlayer';
 import { colors } from '@/lib/theme';
@@ -48,7 +49,7 @@ export default function LessonDetail() {
     return (
       <View style={styles.flex}>
         <Appbar.Header elevated>
-          <Appbar.BackAction onPress={() => router.back()} />
+          <Appbar.BackAction onPress={() => goBack(router, '/(app)/lessons')} />
           <Appbar.Content title="שיעור" />
         </Appbar.Header>
         <Text style={styles.empty}>השיעור לא נמצא.</Text>
@@ -64,7 +65,7 @@ export default function LessonDetail() {
   return (
     <View style={styles.flex}>
       <Appbar.Header elevated>
-        <Appbar.BackAction onPress={() => router.back()} />
+        <Appbar.BackAction onPress={() => goBack(router, '/(app)/lessons')} />
         <Appbar.Content
           title={lesson.lesson_number ? `שיעור ${lesson.lesson_number}` : 'שיעור'}
           subtitle={lesson.lesson_date

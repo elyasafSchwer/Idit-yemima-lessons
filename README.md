@@ -174,8 +174,7 @@ plays lesson and summary; a new student sees paid lessons locked and the free on
 Not covered on Android: the student role (adb cannot type the Hebrew test username).
 
 ### Next steps
-1. Deep links on web (e.g. reloading `/lessons/<id>`) land on the catalog instead of the lesson
-2. Deleting a lesson from the manage screen (today only via SQL)
+1. Deleting a lesson from the manage screen (today only via SQL)
 
 Repository: https://github.com/elyasafSchwer/IditYemimaLessons
 

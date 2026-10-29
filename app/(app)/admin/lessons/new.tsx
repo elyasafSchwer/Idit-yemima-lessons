@@ -7,6 +7,7 @@ import {
   HelperText, ProgressBar, Divider,
 } from 'react-native-paper';
 import { supabase } from '@/lib/supabase';
+import { goBack } from '@/lib/navigation';
 import HeaderTitle from '@/components/HeaderTitle';
 import { useAuth } from '@/context/auth';
 import { dispatchIngest, type TrackKind } from '@/lib/ingest';
@@ -143,7 +144,7 @@ export default function NewLesson() {
 
       // Coming from the manage screen, go back to it rather than stacking a
       // second copy on top.
-      if (existingId) router.back();
+      if (existingId) goBack(router, '/(app)/admin/lessons');
       else router.replace('/(app)/admin/lessons');
     } catch (e) {
       setProgress(null);
@@ -159,7 +160,7 @@ export default function NewLesson() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <Appbar.Header elevated>
-        <Appbar.BackAction onPress={() => router.back()} />
+        <Appbar.BackAction onPress={() => goBack(router, '/(app)/admin/lessons')} />
         <Appbar.Content
           title={(
             <HeaderTitle

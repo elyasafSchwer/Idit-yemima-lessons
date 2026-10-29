@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter, useFocusEffect, Redirect } from 'expo-router';
 import { Appbar, Card, Text, Badge, ActivityIndicator, Avatar } from 'react-native-paper';
 import { supabase } from '@/lib/supabase';
+import { goBack } from '@/lib/navigation';
 import { useAuth } from '@/context/auth';
 import { colors } from '@/lib/theme';
 
@@ -47,7 +48,7 @@ export default function AdminHome() {
   return (
     <View style={styles.flex}>
       <Appbar.Header elevated>
-        <Appbar.BackAction onPress={() => router.back()} />
+        <Appbar.BackAction onPress={() => goBack(router, '/(app)/lessons')} />
         <Appbar.Content title="ניהול" />
       </Appbar.Header>
 

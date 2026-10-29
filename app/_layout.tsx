@@ -1,7 +1,7 @@
 import 'react-native-gesture-handler';
 import { useEffect } from 'react';
 import { I18nManager, Platform, StyleSheet, View } from 'react-native';
-import { Stack, SplashScreen } from 'expo-router';
+import { Stack, SplashScreen, useRouter, useRootNavigationState } from 'expo-router';
 import * as Updates from 'expo-updates';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { PaperProvider, ActivityIndicator } from 'react-native-paper';
@@ -20,10 +20,20 @@ SplashScreen.preventAutoHideAsync();
 // (an SPA, chosen so server rendering never has to run browser-only code), so
 // lang/dir are set here instead. The app shows a loading state first, so the
 // one frame before this runs is not visible.
+// The navigator only mounts once the session is restored, and by then the
+// address the browser opened is gone: a reload of /lessons/<id> fell back to
+// the catalogue. Remember it here, before the router touches the URL, and go
+// back to it once signed in -- also after signing in from a shared link.
+const AUTH_PATHS = ['/', '/sign-in', '/sign-up'];
+let pendingDeepLink: string | null = null;
+
 if (Platform.OS === 'web') {
   if (typeof document !== 'undefined') {
     document.documentElement.lang = 'he';
     document.documentElement.dir = 'rtl';
+  }
+  if (typeof window !== 'undefined' && !AUTH_PATHS.includes(window.location.pathname)) {
+    pendingDeepLink = window.location.pathname + window.location.search;
   }
 } else if (!I18nManager.isRTL) {
   I18nManager.allowRTL(true);
@@ -55,6 +65,15 @@ export default function RootLayout() {
 function RootNavigator() {
   const { session, isLoading, isProfileLoading } = useAuth();
   const ready = !isLoading && !isProfileLoading;
+  const router = useRouter();
+  const navReady = !!useRootNavigationState()?.key;
+
+  useEffect(() => {
+    if (!ready || !navReady || !session || !pendingDeepLink) return;
+    const target = pendingDeepLink;
+    pendingDeepLink = null;
+    router.replace(target as never);
+  }, [ready, navReady, session, router]);
 
   useEffect(() => {
     if (ready) SplashScreen.hideAsync().catch(() => {});
