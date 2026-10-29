@@ -1,0 +1,105 @@
+name: ingest-lesson
+
+# Triggered by the `ingest-dispatch` Edge Function when Idit uploads recordings
+# from the admin screen. Supabase Edge Functions cannot run ffmpeg -- subprocess
+# spawning is blocked and ffmpeg.wasm is not realistic inside a 256MB / 2s-CPU
+# isolate -- so the heavy work happens here.
+on:
+  repository_dispatch:
+    types: [ingest-lesson]
+  workflow_dispatch:
+    inputs:
+      lesson_id:
+        description: Lesson UUID
+        required: true
+      kind:
+        description: full or summary
+        required: true
+        default: full
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      # ffmpeg is NOT preinstalled on ubuntu-latest.
+      - name: Install ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+
+      - name: Resolve inputs
+        id: inputs
+        run: |
+          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            echo "lesson_id=${{ github.event.client_payload.lesson_id }}" >> "$GITHUB_OUTPUT"
+            echo "kind=${{ github.event.client_payload.kind }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "lesson_id=${{ inputs.lesson_id }}" >> "$GITHUB_OUTPUT"
+            echo "kind=${{ inputs.kind }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download raw parts
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          LESSON: ${{ steps.inputs.outputs.lesson_id }}
+          KIND: ${{ steps.inputs.outputs.kind }}
+        run: |
+          set -euo pipefail
+          mkdir -p parts
+          # The admin screen prefixes each object with its index, so a plain
+          # lexical sort restores the order Idit chose.
+          curl -sS -f -X POST "$SUPABASE_URL/storage/v1/object/list/incoming" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{\"prefix\":\"$LESSON/$KIND/\",\"limit\":100,\"sortBy\":{\"column\":\"name\",\"order\":\"asc\"}}" \
+            | python3 -c "import sys,json; [print(o['name']) for o in json.load(sys.stdin)]" > names.txt
+          test -s names.txt || { echo "no parts found for $LESSON/$KIND"; exit 1; }
+          while read -r n; do
+            echo "downloading $n"
+            curl -sS -f "$SUPABASE_URL/storage/v1/object/incoming/$LESSON/$KIND/$n" \
+              -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" -o "parts/$n"
+          done < names.txt
+          ls -la parts
+
+      - name: Merge, transcode, encrypt and publish
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+          mapfile -t ORDERED < <(ls parts | sort)
+          printf 'order:\n'; printf '  %s\n' "${ORDERED[@]}"
+          ./scripts/ingest.sh \
+            --lesson "${{ steps.inputs.outputs.lesson_id }}" \
+            --kind "${{ steps.inputs.outputs.kind }}" \
+            $(printf 'parts/%s ' "${ORDERED[@]}")
+
+      - name: Mark the job done
+        if: always()
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          LESSON: ${{ steps.inputs.outputs.lesson_id }}
+          KIND: ${{ steps.inputs.outputs.kind }}
+          OUTCOME: ${{ job.status }}
+        run: |
+          # Without this the admin screen shows "processing" forever on failure,
+          # with no error and nothing to retry.
+          if [ "$OUTCOME" = "success" ]; then
+            BODY='{"status":"ready","error":null}'
+          else
+            BODY="{\"status\":\"failed\",\"error\":\"workflow $OUTCOME — see run ${{ github.run_id }}\"}"
+          fi
+          curl -sS -X PATCH \
+            "$SUPABASE_URL/rest/v1/ingest_jobs?lesson_id=eq.$LESSON&kind=eq.$KIND&status=eq.processing" \
+            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Content-Type: application/json" -d "$BODY" -o /dev/null
+          if [ "$OUTCOME" != "success" ]; then
+            curl -sS -X PATCH "$SUPABASE_URL/rest/v1/lessons?id=eq.$LESSON" \
+              -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+              -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+              -H "Content-Type: application/json" -d '{"status":"failed"}' -o /dev/null
+          fi
