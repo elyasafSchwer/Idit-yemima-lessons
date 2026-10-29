@@ -33,6 +33,7 @@
       "expo-status-bar",
       "expo-secure-store",
       "expo-audio",
+      "./plugins/withPodsDeploymentTarget",
       [
         "expo-build-properties",
         {
