@@ -49,3 +49,4 @@ yarn-error.*
 *.apk
 *.aab
 *.keyinfo
+.claude/

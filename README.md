@@ -168,20 +168,21 @@ Every security boundary was also tested in the negative direction (a student is 
 Contents read/write on this repo only — it expires, renew it when uploads fail with
 `dispatch failed: 401`) and `GITHUB_REPOSITORY` in Supabase.
 
-**Web:** the page and bundle build and `hls.js` is bundled, but the browser player has
-**not been tested manually yet**.
+**Tested end to end on 2026-10-29**, web and the Android emulator: admin creates a lesson,
+adds a summary, a deliberately broken upload fails and "retry" recovers it; a student with access
+plays lesson and summary; a new student sees paid lessons locked and the free one playable.
+Not covered on Android: the student role (adb cannot type the Hebrew test username).
 
 ### Next steps
-1. A "retry" button for failed uploads on the admin screen (today only a manual
-   `gh workflow run ingest.yml -f lesson_id=<uuid> -f kind=full` can retry)
-2. Test the web player manually
-3. Rebuild the dev client after the package rename: `npx expo prebuild --clean && npm run android`
+1. Deep links on web (e.g. reloading `/lessons/<id>`) land on the catalog instead of the lesson
+2. Deleting a lesson from the manage screen (today only via SQL)
 
 Repository: https://github.com/elyasafSchwer/IditYemimaLessons
 
 ### Test data to delete before going live
-- Users: `rutitest` (admin) and a student with a Hebrew username (tests Hebrew usernames)
-- The prototype lesson ("Hakarat HaTov") and lesson "2" (`failed`)
+- Users: `rutitest` (admin), and students with Hebrew usernames created while testing
+- Lessons: the prototype ("Hakarat HaTov"), "2", and "99. שיעור בדיקה אוטומטית"; their
+  raw files in `incoming` and segments in `lessons` stay behind unless removed from Storage
 - Entitlements granted during testing may have `method` stored in Hebrew; new ones use `manual`
 - **Idit does not exist yet.** After she signs up:
   `update profiles set role='admin' where username='<her username>';`
