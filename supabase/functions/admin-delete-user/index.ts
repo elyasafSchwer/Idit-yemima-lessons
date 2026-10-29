@@ -1,15 +1,15 @@
-// Sets a student's password on Idit's behalf.
+// Deletes a student's account on Idit's behalf.
 //
 // Logins are username-based and map to a synthetic, undeliverable address, so
-// Supabase's own password-reset email cannot work. This replaces it.
+// there is no password-reset email. A student who forgot her password is
+// deleted and signs up again, and Idit re-opens her access. Deleting the auth
+// user cascades to her profile, entitlements and playback progress.
 //
 // The admin check is the whole security of this endpoint: without it any signed
-// in user could take over any account. It is done against the CALLER's JWT, not
+// in user could delete any account. It is done against the CALLER's JWT, not
 // against anything in the request body.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { corsHeaders, json } from '../_shared/cors.ts';
-
-const MIN_PASSWORD_LENGTH = 6;   // matches auth.minimum_password_length
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -40,35 +40,27 @@ Deno.serve(async (req) => {
     .single();
   if (caller?.role !== 'admin') return json({ error: 'forbidden' }, 403);
 
-  let userId: string, newPassword: string;
+  let userId: string;
   try {
-    ({ userId, newPassword } = await req.json());
+    ({ userId } = await req.json());
   } catch {
     return json({ error: 'invalid body' }, 400);
   }
-  if (!userId || typeof newPassword !== 'string') {
-    return json({ error: 'userId and newPassword required' }, 400);
-  }
-  if (newPassword.length < MIN_PASSWORD_LENGTH) {
-    return json({ error: `password must be at least ${MIN_PASSWORD_LENGTH} characters` }, 400);
-  }
+  if (!userId) return json({ error: 'userId required' }, 400);
+  if (userId === user.id) return json({ error: 'cannot delete yourself' }, 403);
 
-  // Refuse to touch another admin: Idit is the only one, and this keeps the
-  // endpoint from being a lateral-movement tool if her account is ever misused.
+  // An admin has to be demoted first. That keeps one misused admin account
+  // from wiping out the others in a single call.
   const { data: target } = await admin
     .from('profiles')
     .select('role, username')
     .eq('id', userId)
     .single();
   if (!target) return json({ error: 'user not found' }, 404);
-  if (target.role === 'admin' && userId !== user.id) {
-    return json({ error: 'cannot reset another admin' }, 403);
-  }
+  if (target.role === 'admin') return json({ error: 'cannot delete an admin' }, 403);
 
-  const { error: updErr } = await admin.auth.admin.updateUserById(userId, {
-    password: newPassword,
-  });
-  if (updErr) return json({ error: 'could not update password' }, 500);
+  const { error: delErr } = await admin.auth.admin.deleteUser(userId);
+  if (delErr) return json({ error: 'could not delete user' }, 500);
 
   return json({ ok: true, username: target.username });
 });

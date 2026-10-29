@@ -7,6 +7,7 @@ import {
   HelperText, ProgressBar, Divider, SegmentedButtons,
 } from 'react-native-paper';
 import { supabase } from '@/lib/supabase';
+import { formatHebrewDate } from '@/lib/hebrewDate';
 import Toggle from '@/components/Toggle';
 import { goBack } from '@/lib/navigation';
 import BackAction from '@/components/BackAction';
@@ -194,6 +195,9 @@ export default function NewLesson() {
               mode="outlined" label="תאריך השיעור" value={date} onChangeText={setDate}
               placeholder="2026-10-19" autoCapitalize="none"
             />
+            {/^\d{4}-\d{2}-\d{2}$/.test(date) && (
+              <HelperText type="info" visible>{formatHebrewDate(date)}</HelperText>
+            )}
 
             <View style={styles.switchRow}>
               <Text variant="bodyLarge">פתוח לכולן בחינם</Text>

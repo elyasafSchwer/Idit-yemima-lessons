@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { Appbar, Text, Chip, ActivityIndicator } from 'react-native-paper';
 import { supabase } from '@/lib/supabase';
+import { formatHebrewDate } from '@/lib/hebrewDate';
 import { goBack } from '@/lib/navigation';
 import BackAction from '@/components/BackAction';
 import { useAuth } from '@/context/auth';
@@ -76,7 +77,7 @@ export default function LessonDetail() {
             <HeaderTitle
               title={lesson.lesson_number ? `${label} ${lesson.lesson_number}` : label}
               subtitle={lesson.lesson_date
-                ? new Date(lesson.lesson_date).toLocaleDateString('he-IL')
+                ? formatHebrewDate(lesson.lesson_date)
                 : null}
             />
           )}

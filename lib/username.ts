@@ -12,5 +12,5 @@ export function isValidUsername(username: string): boolean {
 }
 
 // Must match auth.minimum_password_length (supabase/config.toml and the
-// project's Auth settings) and the admin-reset-password function.
+// project's Auth settings).
 export const MIN_PASSWORD_LENGTH = 6;

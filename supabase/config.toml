@@ -434,7 +434,7 @@ verify_jwt = false
 verify_jwt = true
 
 # Admin-only; the function itself re-checks the caller's role with service_role.
-[functions.admin-reset-password]
+[functions.admin-delete-user]
 verify_jwt = true
 
 [functions.ingest-dispatch]

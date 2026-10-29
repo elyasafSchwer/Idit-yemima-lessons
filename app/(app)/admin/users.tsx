@@ -3,15 +3,15 @@ import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { useRouter, useFocusEffect, Redirect } from 'expo-router';
 import {
   Appbar, Searchbar, Card, Text, Button, Chip, Portal, Dialog, Menu,
-  TextInput, ActivityIndicator, Snackbar, HelperText, IconButton,
+  ActivityIndicator, Snackbar, IconButton,
 } from 'react-native-paper';
 import { supabase } from '@/lib/supabase';
+import { formatHebrewDate } from '@/lib/hebrewDate';
 import { goBack } from '@/lib/navigation';
 import BackAction from '@/components/BackAction';
 import HeaderTitle from '@/components/HeaderTitle';
 import { useAuth } from '@/context/auth';
 import { colors } from '@/lib/theme';
-import { MIN_PASSWORD_LENGTH } from '@/lib/username';
 
 type Row = {
   id: string;
@@ -32,9 +32,7 @@ export default function AdminUsers() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [resetFor, setResetFor] = useState<Row | null>(null);
-  const [newPassword, setNewPassword] = useState('');
-  const [resetError, setResetError] = useState<string | null>(null);
+  const [deleteFor, setDeleteFor] = useState<Row | null>(null);
   const [roleFor, setRoleFor] = useState<{ row: Row; role: Row['role'] } | null>(null);
 
   const load = useCallback(async () => {
@@ -84,7 +82,7 @@ export default function AdminUsers() {
       method: 'manual',
     });
     setBusyId(null);
-    setToast(error ? 'הפעולה נכשלה' : `${row.username} — גישה עד ${end.toLocaleDateString('he-IL')}`);
+    setToast(error ? 'הפעולה נכשלה' : `${row.username} — גישה עד ${formatHebrewDate(end)}`);
     if (!error) load();
   };
 
@@ -114,21 +112,17 @@ export default function AdminUsers() {
     if (!error) load();
   };
 
-  const submitReset = async () => {
-    if (newPassword.length < MIN_PASSWORD_LENGTH) {
-      setResetError(`הסיסמה חייבת להכיל לפחות ${MIN_PASSWORD_LENGTH} תווים`);
-      return;
-    }
-    setBusyId(resetFor!.id);
-    const { error } = await supabase.functions.invoke('admin-reset-password', {
-      body: { userId: resetFor!.id, newPassword },
-    });
+  // There is no password-reset email (logins are usernames), so a student who
+  // forgot her password is deleted and signs up again.
+  const submitDelete = async () => {
+    if (!deleteFor) return;
+    const row = deleteFor;
+    setDeleteFor(null);
+    setBusyId(row.id);
+    const { error } = await supabase.functions.invoke('admin-delete-user', { body: { userId: row.id } });
     setBusyId(null);
-    if (error) { setResetError('איפוס הסיסמה נכשל'); return; }
-    setToast(`הסיסמה של ${resetFor!.username} אופסה`);
-    setResetFor(null);
-    setNewPassword('');
-    setResetError(null);
+    setToast(error ? 'המחיקה נכשלה' : `${row.username} נמחקה`);
+    if (!error) load();
   };
 
   if (!isAdmin) return <Redirect href="/(app)/lessons" />;
@@ -164,7 +158,7 @@ export default function AdminUsers() {
                   title={item.username}
                   subtitle={
                     item.role === 'admin' ? 'מנהלת'
-                      : expires ? `גישה עד ${expires.toLocaleDateString('he-IL')}`
+                      : expires ? `גישה עד ${formatHebrewDate(expires)}`
                       : 'אין גישה'
                   }
                   right={() => (
@@ -196,14 +190,15 @@ export default function AdminUsers() {
                       }
                     >
                       <Menu.Item
-                        leadingIcon="key-variant"
-                        title="איפוס סיסמה"
-                        onPress={() => { setMenuFor(null); setResetFor(item); }}
-                      />
-                      <Menu.Item
                         leadingIcon="shield-account"
                         title="הפיכה למנהלת"
                         onPress={() => { setMenuFor(null); setRoleFor({ row: item, role: 'admin' }); }}
+                      />
+                      <Menu.Item
+                        leadingIcon="account-remove"
+                        title="מחיקת המשתמשת"
+                        titleStyle={{ color: colors.error }}
+                        onPress={() => { setMenuFor(null); setDeleteFor(item); }}
                       />
                       {expires && (
                         <Menu.Item
@@ -239,25 +234,17 @@ export default function AdminUsers() {
       )}
 
       <Portal>
-        <Dialog visible={!!resetFor} onDismiss={() => { setResetFor(null); setResetError(null); }}>
-          <Dialog.Title>איפוס סיסמה — {resetFor?.username}</Dialog.Title>
+        <Dialog visible={!!deleteFor} onDismiss={() => setDeleteFor(null)}>
+          <Dialog.Title>מחיקת {deleteFor?.username}</Dialog.Title>
           <Dialog.Content>
-            <Text variant="bodyMedium" style={styles.dialogBody}>
-              אין שחזור סיסמה אוטומטי באפליקציה, כי ההתחברות היא בשם משתמש ללא אימייל.
-              בחרי סיסמה חדשה ומסרי אותה לתלמידה.
+            <Text variant="bodyMedium">
+              החשבון, ההרשאה ונקודות העצירה שלה יימחקו. אם שכחה סיסמה, היא יכולה להירשם מחדש,
+              ואז צריך לפתוח לה שוב את הגישה.
             </Text>
-            <TextInput
-              mode="outlined"
-              label="סיסמה חדשה"
-              value={newPassword}
-              onChangeText={setNewPassword}
-              autoCapitalize="none"
-            />
-            {resetError && <HelperText type="error" visible>{resetError}</HelperText>}
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => { setResetFor(null); setResetError(null); }}>ביטול</Button>
-            <Button mode="contained" onPress={submitReset} loading={!!busyId}>איפוס</Button>
+            <Button onPress={() => setDeleteFor(null)}>ביטול</Button>
+            <Button mode="contained" buttonColor={colors.error} onPress={submitDelete}>מחיקה</Button>
           </Dialog.Actions>
         </Dialog>
         <Dialog visible={!!roleFor} onDismiss={() => setRoleFor(null)}>
@@ -291,7 +278,6 @@ const styles = StyleSheet.create({
   list: { padding: 16, paddingTop: 8, gap: 10 },
   card: { backgroundColor: colors.surface, borderRadius: 16 },
   chip: { marginEnd: 12, alignSelf: 'center' },
-  dialogBody: { marginBottom: 12, color: colors.textSecondary },
   loader: { marginTop: 64 },
   empty: { textAlign: 'center', marginTop: 48, color: colors.textSecondary },
 });

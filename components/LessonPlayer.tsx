@@ -25,6 +25,10 @@ export default function LessonPlayer({ trackId, title }: { trackId: string; titl
   const [error, setError] = useState<'no_access' | 'failed' | null>(null);
   const [rate, setRate] = useState('1');
   const [scrubbing, setScrubbing] = useState<number | null>(null);
+  // Where a seek is headed. Between releasing the slider and the player
+  // reporting the new time, status.currentTime is still the old position, and
+  // the thumb snapped back to it for a moment before jumping forward.
+  const [seekingTo, setSeekingTo] = useState<number | null>(null);
 
   const player = useAudioPlayer(manifestUrl ? { uri: manifestUrl } : null, { updateInterval: 500 });
   const status = useAudioPlayerStatus(player);
@@ -48,6 +52,15 @@ export default function LessonPlayer({ trackId, title }: { trackId: string; titl
     })();
     return () => { cancelled = true; };
   }, [trackId]);
+
+  // Release the pending seek once the player has caught up with it, or after
+  // a moment if it never reports a time close enough (e.g. at the very end).
+  useEffect(() => {
+    if (seekingTo === null) return;
+    if (Math.abs((status.currentTime ?? 0) - seekingTo) < 1.5) { setSeekingTo(null); return; }
+    const t = setTimeout(() => setSeekingTo(null), 2000);
+    return () => clearTimeout(t);
+  }, [seekingTo, status.currentTime]);
 
   // Jump to the saved position once, after the manifest has actually loaded --
   // seeking before that is silently dropped.
@@ -106,7 +119,13 @@ export default function LessonPlayer({ trackId, title }: { trackId: string; titl
   }
 
   const duration = status.duration ?? 0;
-  const position = scrubbing ?? status.currentTime ?? 0;
+  const position = scrubbing ?? seekingTo ?? status.currentTime ?? 0;
+
+  const seek = (to: number) => {
+    const target = Math.max(0, Math.min(duration, to));
+    setSeekingTo(target);
+    player.seekTo(target);
+  };
 
   return (
     <Surface style={styles.card} elevation={1}>
@@ -121,7 +140,7 @@ export default function LessonPlayer({ trackId, title }: { trackId: string; titl
         maximumTrackTintColor={colors.outline}
         thumbTintColor={colors.primary}
         onValueChange={setScrubbing}
-        onSlidingComplete={(v) => { setScrubbing(null); player.seekTo(v); }}
+        onSlidingComplete={(v) => { seek(v); setScrubbing(null); }}
       />
       <View style={styles.times}>
         <Text variant="bodySmall">{formatTime(position)}</Text>
@@ -129,14 +148,14 @@ export default function LessonPlayer({ trackId, title }: { trackId: string; titl
       </View>
 
       <View style={styles.controls}>
-        <IconButton icon="rewind-15" size={30} onPress={() => player.seekTo(Math.max(0, position - 15))} />
+        <IconButton icon="rewind-15" size={30} onPress={() => seek(position - 15)} />
         <IconButton
           icon={status.playing ? 'pause-circle' : 'play-circle'}
           size={58}
           iconColor={colors.primary}
           onPress={() => (status.playing ? player.pause() : player.play())}
         />
-        <IconButton icon="fast-forward-30" size={30} onPress={() => player.seekTo(Math.min(duration, position + 30))} />
+        <IconButton icon="fast-forward-30" size={30} onPress={() => seek(position + 30)} />
       </View>
 
       <SegmentedButtons

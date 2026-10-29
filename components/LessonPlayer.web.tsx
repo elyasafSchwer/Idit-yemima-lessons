@@ -102,7 +102,12 @@ export default function LessonPlayer({ trackId, title }: { trackId: string; titl
 
   const seek = (to: number) => {
     const audio = audioRef.current;
-    if (audio) audio.currentTime = Math.max(0, Math.min(duration || 0, to));
+    if (!audio) return;
+    const target = Math.max(0, Math.min(duration || 0, to));
+    audio.currentTime = target;
+    // Move the bar now: the next timeupdate can still carry the old time, and
+    // the thumb snapped back to it for a moment.
+    setPosition(target);
   };
 
   const changeRate = (r: string) => {

@@ -5,6 +5,7 @@ import {
   Appbar, Card, Text, Button, ActivityIndicator, Snackbar, Divider, SegmentedButtons,
 } from 'react-native-paper';
 import { supabase } from '@/lib/supabase';
+import { formatHebrewDate } from '@/lib/hebrewDate';
 import Toggle from '@/components/Toggle';
 import { goBack } from '@/lib/navigation';
 import BackAction from '@/components/BackAction';
@@ -146,7 +147,7 @@ export default function ManageLessons() {
                 <Card.Title
                   title={lesson.lesson_number ? `${lesson.lesson_number}. ${lesson.title}` : lesson.title}
                   titleNumberOfLines={2}
-                  subtitle={lesson.lesson_date ? new Date(lesson.lesson_date).toLocaleDateString('he-IL') : undefined}
+                  subtitle={lesson.lesson_date ? formatHebrewDate(lesson.lesson_date) : undefined}
                 />
                 <Divider />
                 <Card.Content style={styles.body}>

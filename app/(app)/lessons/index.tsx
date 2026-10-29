@@ -6,6 +6,7 @@ import {
 } from 'react-native-paper';
 import { useAuth } from '@/context/auth';
 import { supabase } from '@/lib/supabase';
+import { formatHebrewDate } from '@/lib/hebrewDate';
 import HeaderTitle from '@/components/HeaderTitle';
 import { CATEGORIES, CATEGORY_LABEL, type Category } from '@/lib/categories';
 import { colors, WHATSAPP_URL } from '@/lib/theme';
@@ -49,7 +50,7 @@ export default function Lessons() {
   };
 
   const expiry = accessExpiresAt
-    ? new Date(accessExpiresAt).toLocaleDateString('he-IL')
+    ? formatHebrewDate(accessExpiresAt)
     : null;
 
   return (
@@ -115,7 +116,7 @@ export default function Lessons() {
                 <Card.Title
                   title={item.lesson_number ? `${item.lesson_number}. ${item.title}` : item.title}
                   subtitle={item.lesson_date
-                    ? new Date(item.lesson_date).toLocaleDateString('he-IL')
+                    ? formatHebrewDate(item.lesson_date)
                     : undefined}
                   right={() => (
                     <View style={styles.chips}>
