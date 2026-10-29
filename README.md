@@ -161,19 +161,23 @@ playback, resume position, admin dashboard, granting/extending/revoking access, 
 Every security boundary was also tested in the negative direction (a student is blocked from
 `track_keys`, from uploading, from resetting passwords, and from a paid lesson without access).
 
-**Written but not active:** `.github/workflows/ingest.yml` and `keepalive.yml`.
-There is no GitHub remote yet, so uploading a lesson fails with
-`ingest pipeline is not configured` (on purpose — not a silent hang).
+**Ingest pipeline: active.** Uploads from the admin screen trigger
+`.github/workflows/ingest.yml` through the `ingest-dispatch` function. Verified end to end on
+2026-10-29 (a 49 minute lesson, ~1 minute on the runner). Secrets: `SUPABASE_URL` and
+`SUPABASE_SERVICE_ROLE_KEY` in GitHub Actions; `GITHUB_DISPATCH_TOKEN` (fine-grained PAT,
+Contents read/write on this repo only — it expires, renew it when uploads fail with
+`dispatch failed: 401`) and `GITHUB_REPOSITORY` in Supabase.
 
 **Web:** the page and bundle build and `hls.js` is bundled, but the browser player has
 **not been tested manually yet**.
 
 ### Next steps
-Repository: https://github.com/elyasafSchwer/IditYemimaLessons
+1. A "retry" button for failed uploads on the admin screen (today only a manual
+   `gh workflow run ingest.yml -f lesson_id=<uuid> -f kind=full` can retry)
+2. Test the web player manually
+3. Rebuild the dev client after the package rename: `npx expo prebuild --clean && npm run android`
 
-1. GitHub secrets: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`
-2. `supabase secrets set GITHUB_DISPATCH_TOKEN=... GITHUB_REPOSITORY=elyasafSchwer/IditYemimaLessons`
-3. Run the workflow manually on the lesson already waiting in `incoming`
+Repository: https://github.com/elyasafSchwer/IditYemimaLessons
 
 ### Test data to delete before going live
 - Users: `rutitest` (admin) and a student with a Hebrew username (tests Hebrew usernames)
