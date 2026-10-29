@@ -9,7 +9,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { corsHeaders, json } from '../_shared/cors.ts';
 
-const MIN_PASSWORD_LENGTH = 8;   // matches auth.minimum_password_length
+const MIN_PASSWORD_LENGTH = 6;   // matches auth.minimum_password_length
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });

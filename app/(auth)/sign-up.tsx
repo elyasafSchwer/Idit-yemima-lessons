@@ -3,7 +3,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 're
 import { Link } from 'expo-router';
 import { Text, TextInput, Button, Surface, HelperText } from 'react-native-paper';
 import { useAuth } from '@/context/auth';
-import { isValidUsername } from '@/lib/username';
+import { isValidUsername, MIN_PASSWORD_LENGTH } from '@/lib/username';
 import { colors } from '@/lib/theme';
 
 export default function SignUp() {
@@ -21,8 +21,8 @@ export default function SignUp() {
       return;
     }
     // Must match auth.minimum_password_length in supabase/config.toml.
-    if (password.length < 8) {
-      setError('הסיסמה חייבת להכיל לפחות 8 תווים');
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setError(`הסיסמה חייבת להכיל לפחות ${MIN_PASSWORD_LENGTH} תווים`);
       return;
     }
     setBusy(true);

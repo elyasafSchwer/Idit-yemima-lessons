@@ -2,16 +2,17 @@ import { useCallback, useEffect, useState } from 'react';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { useFocusEffect, useRouter, Redirect } from 'expo-router';
 import {
-  Appbar, Card, Text, Button, Chip, ActivityIndicator, Snackbar, Divider,
+  Appbar, Card, Text, Button, ActivityIndicator, Snackbar, Divider, Switch, SegmentedButtons,
 } from 'react-native-paper';
 import { supabase } from '@/lib/supabase';
 import { goBack } from '@/lib/navigation';
 import { useAuth } from '@/context/auth';
-import { retryIngest, type TrackKind } from '@/lib/ingest';
+import { retryIngest } from '@/lib/ingest';
+import { CATEGORIES, CATEGORY_LABEL, CATEGORY_ITEM, type Category } from '@/lib/categories';
 import { colors } from '@/lib/theme';
 
-type Job = { id: string; kind: TrackKind; status: string; error: string | null; created_at: string };
-type Track = { kind: TrackKind; status: string; duration_seconds: number | null };
+type Job = { id: string; status: string; error: string | null; created_at: string };
+type Track = { status: string; duration_seconds: number | null };
 type Lesson = {
   id: string;
   lesson_number: number | null;
@@ -19,37 +20,35 @@ type Lesson = {
   lesson_date: string | null;
   is_free: boolean;
   status: string;
+  category: Category;
   tracks: Track[];
   ingest_jobs: Job[];
 };
 
-type TrackState =
+type RecordingState =
   | { state: 'ready'; minutes: number | null }
   | { state: 'processing' }
   | { state: 'failed'; job: Job }
   | { state: 'missing' };
 
 // The newest job decides: a fresh upload that failed matters more than an
-// older track that is still live, because Idit has to act on it.
-function trackState(lesson: Lesson, kind: TrackKind): TrackState {
-  const latest = lesson.ingest_jobs
-    .filter((j) => j.kind === kind)
-    .sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
+// older recording that is still live, because Idit has to act on it.
+function recordingState(lesson: Lesson): RecordingState {
+  const latest = [...lesson.ingest_jobs].sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
   if (latest?.status === 'processing') return { state: 'processing' };
   if (latest?.status === 'failed') return { state: 'failed', job: latest };
-  const track = lesson.tracks.find((t) => t.kind === kind && t.status === 'ready');
+  const track = lesson.tracks.find((t) => t.status === 'ready');
   if (track) {
     return { state: 'ready', minutes: track.duration_seconds ? Math.round(track.duration_seconds / 60) : null };
   }
   return { state: 'missing' };
 }
 
-const KIND_LABEL: Record<TrackKind, string> = { full: 'השיעור', summary: 'סיכום' };
-
 export default function ManageLessons() {
   const { isAdmin } = useAuth();
   const router = useRouter();
   const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [category, setCategory] = useState<Category>('lesson');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
@@ -58,9 +57,9 @@ export default function ManageLessons() {
   const load = useCallback(async () => {
     const { data } = await supabase
       .from('lessons')
-      .select('id, lesson_number, title, lesson_date, is_free, status, '
-        + 'tracks(kind, status, duration_seconds), ingest_jobs(id, kind, status, error, created_at)')
-      .order('lesson_date', { ascending: false, nullsFirst: false })
+      .select('id, lesson_number, title, lesson_date, is_free, status, category, '
+        + 'tracks(status, duration_seconds), ingest_jobs(id, status, error, created_at)')
+      .order('lesson_number', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false });
     setLessons((data as unknown as Lesson[]) ?? []);
     setLoading(false);
@@ -70,8 +69,7 @@ export default function ManageLessons() {
 
   // Processing takes a minute or two on the runner; keep the screen honest
   // without making Idit pull to refresh.
-  const anyProcessing = lessons.some((l) =>
-    (['full', 'summary'] as const).some((k) => trackState(l, k).state === 'processing'));
+  const anyProcessing = lessons.some((l) => recordingState(l).state === 'processing');
   useEffect(() => {
     if (!anyProcessing) return;
     const t = setInterval(load, 15000);
@@ -86,16 +84,26 @@ export default function ManageLessons() {
     setRefreshing(false);
   };
 
+  const update = async (lesson: Lesson, patch: Partial<Pick<Lesson, 'status' | 'is_free'>>, done: string) => {
+    setBusy(lesson.id);
+    const { error } = await supabase.from('lessons').update(patch).eq('id', lesson.id);
+    setBusy(null);
+    setToast(error ? 'הפעולה נכשלה' : done);
+    load();
+  };
+
   const retry = async (lesson: Lesson, job: Job) => {
-    setBusy(job.id);
-    const { error } = await retryIngest(job.id, lesson.id, job.kind);
+    setBusy(lesson.id);
+    const { error } = await retryIngest(job.id, lesson.id, 'full');
     setBusy(null);
     setToast(error ? 'לא הצלחנו להפעיל את העיבוד שוב' : 'העיבוד הופעל מחדש');
     load();
   };
 
-  const upload = (lesson: Lesson, kind: TrackKind) =>
-    router.push({ pathname: '/(app)/admin/lessons/new', params: { lessonId: lesson.id, kind } });
+  const upload = (lesson: Lesson) =>
+    router.push({ pathname: '/(app)/admin/lessons/new', params: { lessonId: lesson.id } });
+
+  const item = CATEGORY_ITEM[category];
 
   return (
     <View style={styles.flex}>
@@ -107,69 +115,106 @@ export default function ManageLessons() {
 
       {loading ? <ActivityIndicator style={styles.loader} size="large" /> : (
         <FlatList
-          data={lessons}
+          data={lessons.filter((l) => l.category === category)}
           keyExtractor={(l) => l.id}
           contentContainerStyle={styles.list}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           ListHeaderComponent={
-            <Button
-              mode="contained" icon="plus" style={styles.newButton}
-              onPress={() => router.push('/(app)/admin/lessons/new')}
-            >
-              שיעור חדש
-            </Button>
-          }
-          ListEmptyComponent={<Text style={styles.empty}>עדיין אין שיעורים.</Text>}
-          renderItem={({ item }) => (
-            <Card style={styles.card}>
-              <Card.Title
-                title={item.lesson_number ? `${item.lesson_number}. ${item.title}` : item.title}
-                subtitle={item.lesson_date ? new Date(item.lesson_date).toLocaleDateString('he-IL') : undefined}
-                right={() => (
-                  <View style={styles.chips}>
-                    {item.is_free && <Chip compact>פתוח</Chip>}
-                    {item.status === 'ready'
-                      ? <Chip compact icon="eye">מופיע לתלמידות</Chip>
-                      : <Chip compact icon="eye-off">לא מופיע</Chip>}
-                  </View>
-                )}
+            <View style={styles.header}>
+              <SegmentedButtons
+                value={category}
+                onValueChange={(v) => setCategory(v as Category)}
+                buttons={CATEGORIES.map((c) => ({ value: c, label: CATEGORY_LABEL[c] }))}
               />
-              <Divider />
-              <Card.Content style={styles.tracks}>
-                {(['full', 'summary'] as const).map((kind) => {
-                  const s = trackState(item, kind);
-                  return (
-                    <View key={kind} style={styles.trackRow}>
-                      <View style={styles.trackInfo}>
-                        <Text variant="titleSmall">{KIND_LABEL[kind]}</Text>
-                        <TrackStatus s={s} />
-                      </View>
-                      {s.state === 'failed' && (
-                        <Button
-                          mode="contained" icon="refresh" compact
-                          buttonColor={colors.error}
-                          loading={busy === s.job.id} disabled={!!busy}
-                          onPress={() => retry(item, s.job)}
-                        >
-                          נסי שוב
-                        </Button>
-                      )}
-                      {s.state === 'missing' && (
-                        <Button mode="outlined" icon="upload" compact onPress={() => upload(item, kind)}>
-                          {kind === 'summary' ? 'העלאת סיכום' : 'העלאת הקלטה'}
-                        </Button>
-                      )}
-                      {s.state === 'ready' && (
-                        <Button mode="text" icon="swap-horizontal" compact onPress={() => upload(item, kind)}>
-                          החלפה
-                        </Button>
+              <Button
+                mode="contained" icon="plus" style={styles.newButton}
+                onPress={() => router.push({ pathname: '/(app)/admin/lessons/new', params: { category } })}
+              >
+                {category === 'summary' ? 'סיכום חדש' : 'שיעור חדש'}
+              </Button>
+            </View>
+          }
+          ListEmptyComponent={<Text style={styles.empty}>עדיין אין כאן כלום.</Text>}
+          renderItem={({ item: lesson }) => {
+            const s = recordingState(lesson);
+            const visible = lesson.status === 'ready';
+            const disabled = busy === lesson.id;
+            return (
+              <Card style={styles.card}>
+                <Card.Title
+                  title={lesson.lesson_number ? `${lesson.lesson_number}. ${lesson.title}` : lesson.title}
+                  titleNumberOfLines={2}
+                  subtitle={lesson.lesson_date ? new Date(lesson.lesson_date).toLocaleDateString('he-IL') : undefined}
+                />
+                <Divider />
+                <Card.Content style={styles.body}>
+                  <View style={styles.row}>
+                    <View style={styles.info}>
+                      <Text variant="titleSmall">הקלטה</Text>
+                      <RecordingStatus s={s} />
+                    </View>
+                    {s.state === 'failed' && (
+                      <Button
+                        mode="contained" icon="refresh" compact buttonColor={colors.error}
+                        loading={disabled} disabled={!!busy}
+                        onPress={() => retry(lesson, s.job)}
+                      >
+                        נסי שוב
+                      </Button>
+                    )}
+                    {s.state === 'missing' && (
+                      <Button mode="outlined" icon="upload" compact onPress={() => upload(lesson)}>
+                        העלאת הקלטה
+                      </Button>
+                    )}
+                    {s.state === 'ready' && (
+                      <Button mode="text" icon="swap-horizontal" compact onPress={() => upload(lesson)}>
+                        החלפה
+                      </Button>
+                    )}
+                  </View>
+
+                  {/* Hiding keeps the recording; it just takes the item out of
+                      the students' catalogue. Only a processed item can be shown. */}
+                  <View style={styles.row}>
+                    <View style={styles.info}>
+                      <Text variant="titleSmall">מופיע לתלמידות</Text>
+                      {s.state !== 'ready' && !visible && (
+                        <Text style={styles.muted}>יופיע אחרי שההקלטה תהיה מוכנה</Text>
                       )}
                     </View>
-                  );
-                })}
-              </Card.Content>
-            </Card>
-          )}
+                    <Switch
+                      value={visible}
+                      disabled={disabled || (!visible && s.state !== 'ready')}
+                      onValueChange={(on) => update(
+                        lesson,
+                        { status: on ? 'ready' : 'draft' },
+                        on ? `ה${item} מופיע לתלמידות` : `ה${item} הוסתר`,
+                      )}
+                    />
+                  </View>
+
+                  <View style={styles.row}>
+                    <View style={styles.info}>
+                      <Text variant="titleSmall">פתוח לכולן בחינם</Text>
+                      <Text style={styles.muted}>
+                        {lesson.is_free ? 'גם בלי הרשאה' : 'רק לתלמידות עם הרשאה'}
+                      </Text>
+                    </View>
+                    <Switch
+                      value={lesson.is_free}
+                      disabled={disabled}
+                      onValueChange={(on) => update(
+                        lesson,
+                        { is_free: on },
+                        on ? 'פתוח לכולן' : 'רק לתלמידות עם הרשאה',
+                      )}
+                    />
+                  </View>
+                </Card.Content>
+              </Card>
+            );
+          }}
         />
       )}
 
@@ -180,10 +225,10 @@ export default function ManageLessons() {
   );
 }
 
-function TrackStatus({ s }: { s: TrackState }) {
+function RecordingStatus({ s }: { s: RecordingState }) {
   switch (s.state) {
     case 'ready':
-      return <Text style={styles.ok}>זמין{s.minutes ? ` · ${s.minutes} דק׳` : ''}</Text>;
+      return <Text style={styles.ok}>מוכנה{s.minutes ? ` · ${s.minutes} דק׳` : ''}</Text>;
     case 'processing':
       return (
         <View style={styles.inline}>
@@ -194,22 +239,22 @@ function TrackStatus({ s }: { s: TrackState }) {
     case 'failed':
       return <Text style={styles.failed}>העיבוד נכשל</Text>;
     case 'missing':
-      return <Text style={styles.muted}>לא הועלה</Text>;
+      return <Text style={styles.muted}>לא הועלתה</Text>;
   }
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.background },
   list: { padding: 16, gap: 12, paddingBottom: 48 },
-  newButton: { borderRadius: 12, marginBottom: 4 },
+  header: { gap: 12, marginBottom: 4 },
+  newButton: { borderRadius: 12 },
   card: { backgroundColor: colors.surface, borderRadius: 16 },
-  chips: { flexDirection: 'row', gap: 6, marginEnd: 12 },
-  tracks: { paddingTop: 8, gap: 4 },
-  trackRow: {
+  body: { paddingTop: 8, gap: 4 },
+  row: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    minHeight: 48, gap: 8,
+    minHeight: 52, gap: 8,
   },
-  trackInfo: { flex: 1, gap: 2 },
+  info: { flex: 1, gap: 2 },
   inline: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   ok: { color: colors.primary },
   muted: { color: colors.textSecondary },

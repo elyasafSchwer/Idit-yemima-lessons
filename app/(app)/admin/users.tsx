@@ -10,6 +10,7 @@ import { goBack } from '@/lib/navigation';
 import HeaderTitle from '@/components/HeaderTitle';
 import { useAuth } from '@/context/auth';
 import { colors } from '@/lib/theme';
+import { MIN_PASSWORD_LENGTH } from '@/lib/username';
 
 type Row = {
   id: string;
@@ -33,6 +34,7 @@ export default function AdminUsers() {
   const [resetFor, setResetFor] = useState<Row | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [resetError, setResetError] = useState<string | null>(null);
+  const [roleFor, setRoleFor] = useState<{ row: Row; role: Row['role'] } | null>(null);
 
   const load = useCallback(async () => {
     // profiles and entitlements both point at auth.users, not at each other, so
@@ -97,9 +99,23 @@ export default function AdminUsers() {
     if (!error) load();
   };
 
+  // Role changes go through an RPC that checks the caller is an admin and
+  // refuses to demote the caller, so the app can never end up with no admin.
+  const changeRole = async () => {
+    if (!roleFor) return;
+    const { row, role } = roleFor;
+    setRoleFor(null);
+    setBusyId(row.id);
+    const { error } = await supabase.rpc('set_user_role', { target: row.id, new_role: role });
+    setBusyId(null);
+    setToast(error ? 'הפעולה נכשלה'
+      : role === 'admin' ? `${row.username} היא עכשיו מנהלת` : `${row.username} כבר לא מנהלת`);
+    if (!error) load();
+  };
+
   const submitReset = async () => {
-    if (newPassword.length < 8) {
-      setResetError('הסיסמה חייבת להכיל לפחות 8 תווים');
+    if (newPassword.length < MIN_PASSWORD_LENGTH) {
+      setResetError(`הסיסמה חייבת להכיל לפחות ${MIN_PASSWORD_LENGTH} תווים`);
       return;
     }
     setBusyId(resetFor!.id);
@@ -183,6 +199,11 @@ export default function AdminUsers() {
                         title="איפוס סיסמה"
                         onPress={() => { setMenuFor(null); setResetFor(item); }}
                       />
+                      <Menu.Item
+                        leadingIcon="shield-account"
+                        title="הפיכה למנהלת"
+                        onPress={() => { setMenuFor(null); setRoleFor({ row: item, role: 'admin' }); }}
+                      />
                       {expires && (
                         <Menu.Item
                           leadingIcon="lock"
@@ -197,6 +218,16 @@ export default function AdminUsers() {
                       onPress={() => grant(item, !!expires)}
                     >
                       {expires ? 'הארכה בשנה' : 'פתיחת גישה לשנה'}
+                    </Button>
+                  </Card.Actions>
+                )}
+                {item.role === 'admin' && item.id !== session?.user?.id && (
+                  <Card.Actions>
+                    <Button
+                      mode="text" compact loading={busy} disabled={busy}
+                      onPress={() => setRoleFor({ row: item, role: 'student' })}
+                    >
+                      ביטול הרשאות ניהול
                     </Button>
                   </Card.Actions>
                 )}
@@ -226,6 +257,22 @@ export default function AdminUsers() {
           <Dialog.Actions>
             <Button onPress={() => { setResetFor(null); setResetError(null); }}>ביטול</Button>
             <Button mode="contained" onPress={submitReset} loading={!!busyId}>איפוס</Button>
+          </Dialog.Actions>
+        </Dialog>
+        <Dialog visible={!!roleFor} onDismiss={() => setRoleFor(null)}>
+          <Dialog.Title>
+            {roleFor?.role === 'admin' ? 'הפיכה למנהלת' : 'ביטול הרשאות ניהול'} — {roleFor?.row.username}
+          </Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium">
+              {roleFor?.role === 'admin'
+                ? 'מנהלת יכולה להעלות שיעורים, לפתוח ולבטל גישה, לאפס סיסמאות ולמנות מנהלות נוספות.'
+                : 'היא תחזור להיות תלמידה רגילה.'}
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setRoleFor(null)}>ביטול</Button>
+            <Button mode="contained" onPress={changeRole}>אישור</Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>

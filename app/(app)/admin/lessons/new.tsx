@@ -4,13 +4,14 @@ import { useRouter, Redirect, useLocalSearchParams } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import {
   Appbar, TextInput, Button, Card, Text, IconButton, Switch,
-  HelperText, ProgressBar, Divider,
+  HelperText, ProgressBar, Divider, SegmentedButtons,
 } from 'react-native-paper';
 import { supabase } from '@/lib/supabase';
 import { goBack } from '@/lib/navigation';
 import HeaderTitle from '@/components/HeaderTitle';
 import { useAuth } from '@/context/auth';
 import { dispatchIngest, type TrackKind } from '@/lib/ingest';
+import { CATEGORIES, CATEGORY_ITEM, type Category } from '@/lib/categories';
 import { colors } from '@/lib/theme';
 
 type Part = { uri: string; name: string; size: number | null };
@@ -20,18 +21,17 @@ export default function NewLesson() {
   const router = useRouter();
   // With a lessonId this screen adds a recording (usually the summary) to an
   // existing lesson, or replaces one, instead of creating a lesson.
-  const params = useLocalSearchParams<{ lessonId?: string; kind?: TrackKind }>();
+  const params = useLocalSearchParams<{ lessonId?: string; category?: Category }>();
   const existingId = params.lessonId ?? null;
   const [existingTitle, setExistingTitle] = useState<string | null>(null);
 
-  const [number, setNumber] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [isFree, setIsFree] = useState(false);
-  // A new lesson starts with its full recording; the summary is added later
-  // from the manage screen, once the lesson exists.
-  const kind: TrackKind = params.kind === 'summary' ? 'summary' : 'full';
+  // Every catalogue item, lesson or summary, has a single 'full' track.
+  const kind: TrackKind = 'full';
+  const [category, setCategory] = useState<Category>(params.category === 'summary' ? 'summary' : 'lesson');
   const [parts, setParts] = useState<Part[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<number | null>(null);
@@ -70,7 +70,7 @@ export default function NewLesson() {
   };
 
   const submit = async () => {
-    if (!existingId && !title.trim()) { setError('צריך כותרת לשיעור'); return; }
+    if (!existingId && !title.trim()) { setError('צריך כותרת'); return; }
     if (parts.length === 0) { setError('צריך לבחור לפחות הקלטה אחת'); return; }
     if (!existingId && !/^\d{4}-\d{2}-\d{2}$/.test(date)) { setError('תאריך בפורמט YYYY-MM-DD'); return; }
 
@@ -92,8 +92,9 @@ export default function NewLesson() {
       } else {
         const { data, error: lessonErr } = await supabase
           .from('lessons')
+          // lesson_number is assigned by a trigger, in order of insertion.
           .insert({
-            lesson_number: number ? Number(number) : null,
+            category,
             title: title.trim(),
             description: description.trim() || null,
             lesson_date: date,
@@ -164,7 +165,7 @@ export default function NewLesson() {
         <Appbar.Content
           title={(
             <HeaderTitle
-              title={existingId ? (kind === 'summary' ? 'העלאת סיכום' : 'העלאת הקלטה') : 'שיעור חדש'}
+              title={existingId ? 'העלאת הקלטה' : `${CATEGORY_ITEM[category]} חדש`}
               subtitle={existingTitle}
             />
           )}
@@ -174,16 +175,14 @@ export default function NewLesson() {
       <ScrollView contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
         {!existingId && (
           <>
-            <View style={styles.row}>
-              <TextInput
-                mode="outlined" label="מס׳" value={number} onChangeText={setNumber}
-                keyboardType="number-pad" style={styles.numberInput}
-              />
-              <TextInput
-                mode="outlined" label="כותרת" value={title} onChangeText={setTitle}
-                style={styles.flexInput}
-              />
-            </View>
+            <SegmentedButtons
+              value={category}
+              onValueChange={(v) => setCategory(v as Category)}
+              buttons={CATEGORIES.map((c) => ({ value: c, label: CATEGORY_ITEM[c] }))}
+            />
+            <TextInput
+              mode="outlined" label="כותרת" value={title} onChangeText={setTitle}
+            />
 
             <TextInput
               mode="outlined" label="תיאור קצר" value={description} onChangeText={setDescription}
@@ -260,9 +259,6 @@ export default function NewLesson() {
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.background },
   wrap: { padding: 16, gap: 12, paddingBottom: 48 },
-  row: { flexDirection: 'row', gap: 10 },
-  numberInput: { width: 84 },
-  flexInput: { flex: 1 },
   switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   partCard: { backgroundColor: colors.surface, borderRadius: 12 },
   partActions: { flexDirection: 'row', alignItems: 'center' },

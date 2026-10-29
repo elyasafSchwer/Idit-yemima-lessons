@@ -1,11 +1,13 @@
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
-import { Appbar, Text, Chip, ActivityIndicator, Divider } from 'react-native-paper';
+import { Appbar, Text, Chip, ActivityIndicator } from 'react-native-paper';
 import { supabase } from '@/lib/supabase';
 import { goBack } from '@/lib/navigation';
 import { useAuth } from '@/context/auth';
 import LessonPlayer from '@/components/LessonPlayer';
+import HeaderTitle from '@/components/HeaderTitle';
+import { CATEGORY_ITEM, type Category } from '@/lib/categories';
 import { colors } from '@/lib/theme';
 
 type Track = { id: string; kind: 'full' | 'summary'; duration_seconds: number | null; status: string };
@@ -16,6 +18,7 @@ type Lesson = {
   description: string | null;
   lesson_date: string | null;
   is_free: boolean;
+  category: Category;
   tracks: Track[];
 };
 
@@ -31,7 +34,7 @@ export default function LessonDetail() {
     (async () => {
       const { data } = await supabase
         .from('lessons')
-        .select('id, lesson_number, title, description, lesson_date, is_free, tracks(id, kind, duration_seconds, status)')
+        .select('id, lesson_number, title, description, lesson_date, is_free, category, tracks(id, kind, duration_seconds, status)')
         .eq('id', id)
         .single();
       if (!cancelled) {
@@ -57,9 +60,10 @@ export default function LessonDetail() {
     );
   }
 
-  const ready = (lesson.tracks ?? []).filter((t) => t.status === 'ready');
-  const full = ready.find((t) => t.kind === 'full');
-  const summary = ready.find((t) => t.kind === 'summary');
+  // Each catalogue item has one recording. Summaries used to be a second
+  // track on a lesson; the migration moved them to items of their own.
+  const track = (lesson.tracks ?? []).find((t) => t.status === 'ready');
+  const label = CATEGORY_ITEM[lesson.category];
   const locked = !lesson.is_free && !hasAccess;
 
   return (
@@ -67,10 +71,14 @@ export default function LessonDetail() {
       <Appbar.Header elevated>
         <Appbar.BackAction onPress={() => goBack(router, '/(app)/lessons')} />
         <Appbar.Content
-          title={lesson.lesson_number ? `שיעור ${lesson.lesson_number}` : 'שיעור'}
-          subtitle={lesson.lesson_date
-            ? new Date(lesson.lesson_date).toLocaleDateString('he-IL')
-            : undefined}
+          title={(
+            <HeaderTitle
+              title={lesson.lesson_number ? `${label} ${lesson.lesson_number}` : label}
+              subtitle={lesson.lesson_date
+                ? new Date(lesson.lesson_date).toLocaleDateString('he-IL')
+                : null}
+            />
+          )}
         />
       </Appbar.Header>
 
@@ -85,24 +93,9 @@ export default function LessonDetail() {
           <Text variant="bodyMedium" style={styles.description}>{lesson.description}</Text>
         )}
 
-        {full && (
-          <>
-            <Text variant="titleSmall" style={styles.sectionLabel}>השיעור</Text>
-            <LessonPlayer trackId={full.id} title={lesson.title} />
-          </>
-        )}
-
-        {summary && (
-          <>
-            <Divider style={styles.divider} />
-            <Text variant="titleSmall" style={styles.sectionLabel}>סיכום השיעור</Text>
-            <LessonPlayer trackId={summary.id} title={`סיכום — ${lesson.title}`} />
-          </>
-        )}
-
-        {!full && !summary && (
-          <Text style={styles.empty}>עדיין אין הקלטה זמינה לשיעור הזה.</Text>
-        )}
+        {track
+          ? <LessonPlayer trackId={track.id} title={lesson.title} />
+          : <Text style={styles.empty}>עדיין אין הקלטה זמינה.</Text>}
       </ScrollView>
     </View>
   );
@@ -114,8 +107,6 @@ const styles = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   title: { color: colors.text, flexShrink: 1 },
   description: { color: colors.textSecondary },
-  sectionLabel: { color: colors.primary, marginTop: 8 },
-  divider: { marginVertical: 12 },
   loader: { marginTop: 64 },
   empty: { textAlign: 'center', marginTop: 48, color: colors.textSecondary },
 });

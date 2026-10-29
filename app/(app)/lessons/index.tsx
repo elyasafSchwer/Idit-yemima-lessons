@@ -2,11 +2,12 @@ import { useCallback, useState } from 'react';
 import { FlatList, Linking, RefreshControl, StyleSheet, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import {
-  Text, Card, Chip, Button, Surface, Banner, ActivityIndicator, Appbar,
+  Text, Card, Chip, Button, Surface, Banner, ActivityIndicator, Appbar, SegmentedButtons,
 } from 'react-native-paper';
 import { useAuth } from '@/context/auth';
 import { supabase } from '@/lib/supabase';
 import HeaderTitle from '@/components/HeaderTitle';
+import { CATEGORIES, CATEGORY_LABEL, type Category } from '@/lib/categories';
 import { colors, WHATSAPP_URL } from '@/lib/theme';
 
 type Lesson = {
@@ -17,6 +18,7 @@ type Lesson = {
   lesson_date: string | null;
   is_free: boolean;
   status: string;
+  category: Category;
 };
 
 export default function Lessons() {
@@ -25,11 +27,12 @@ export default function Lessons() {
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [category, setCategory] = useState<Category>('lesson');
 
   const load = useCallback(async () => {
     const { data } = await supabase
       .from('lessons')
-      .select('id, lesson_number, title, description, lesson_date, is_free, status')
+      .select('id, lesson_number, title, description, lesson_date, is_free, status, category')
       .eq('status', 'ready')
       .order('lesson_date', { ascending: false });
     setLessons((data as Lesson[]) ?? []);
@@ -82,17 +85,24 @@ export default function Lessons() {
         </Surface>
       )}
 
+      <SegmentedButtons
+        style={styles.tabs}
+        value={category}
+        onValueChange={(v) => setCategory(v as Category)}
+        buttons={CATEGORIES.map((c) => ({ value: c, label: CATEGORY_LABEL[c] }))}
+      />
+
       {loading ? (
         <ActivityIndicator style={styles.loader} size="large" />
       ) : (
         <FlatList
-          data={lessons}
+          data={lessons.filter((l) => l.category === category)}
           keyExtractor={(l) => l.id}
           contentContainerStyle={styles.list}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           ListEmptyComponent={
             <Text variant="bodyLarge" style={styles.empty}>
-              {isAdmin ? 'עדיין לא העלית שיעורים.' : 'עדיין אין שיעורים זמינים.'}
+              {category === 'summary' ? 'עדיין אין סיכומים.' : 'עדיין אין שיעורים.'}
             </Text>
           }
           renderItem={({ item }) => {
@@ -130,9 +140,9 @@ export default function Lessons() {
           mode="contained"
           icon="plus"
           style={styles.fab}
-          onPress={() => router.push('/(app)/admin/lessons/new')}
+          onPress={() => router.push({ pathname: '/(app)/admin/lessons/new', params: { category } })}
         >
-          שיעור חדש
+          {category === 'summary' ? 'סיכום חדש' : 'שיעור חדש'}
         </Button>
       )}
     </View>
@@ -141,7 +151,8 @@ export default function Lessons() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.background },
-  list: { padding: 16, gap: 12 },
+  tabs: { marginHorizontal: 16, marginTop: 12 },
+  list: { padding: 16, gap: 12, paddingBottom: 96 },
   card: { backgroundColor: colors.surface, borderRadius: 16 },
   chips: { flexDirection: 'row', gap: 6, marginEnd: 12 },
   adminButton: { marginEnd: 4 },

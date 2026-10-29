@@ -107,6 +107,8 @@ import json,sys
 print(json.dumps({'track_id': sys.argv[1], 'key_bytes': '\\\\x'+sys.argv[2], 'key_iv': sys.argv[3]}))" \
   "$TRACK_ID" "$KEY_HEX" "$IV")" > /dev/null
 
-api PATCH "lessons?id=eq.$LESSON" '{"status":"ready"}' > /dev/null
+# Only a lesson waiting for its first recording goes live. A replaced
+# recording must not un-hide a lesson Idit chose to hide.
+api PATCH "lessons?id=eq.$LESSON&status=eq.processing" '{"status":"ready"}' > /dev/null
 
 echo "==> done. track $TRACK_ID is ready."
