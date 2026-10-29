@@ -87,13 +87,17 @@ jobs:
         run: |
           # Without this the admin screen shows "processing" forever on failure,
           # with no error and nothing to retry.
+          # A manual re-run usually targets a job already marked failed (e.g. the
+          # dispatch never reached GitHub), so success clears that state too.
           if [ "$OUTCOME" = "success" ]; then
             BODY='{"status":"ready","error":null}'
+            STATUSES='processing,failed'
           else
             BODY="{\"status\":\"failed\",\"error\":\"workflow $OUTCOME — see run ${{ github.run_id }}\"}"
+            STATUSES='processing'
           fi
           curl -sS -X PATCH \
-            "$SUPABASE_URL/rest/v1/ingest_jobs?lesson_id=eq.$LESSON&kind=eq.$KIND&status=eq.processing" \
+            "$SUPABASE_URL/rest/v1/ingest_jobs?lesson_id=eq.$LESSON&kind=eq.$KIND&status=in.($STATUSES)" \
             -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
             -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
             -H "Content-Type: application/json" -d "$BODY" -o /dev/null
