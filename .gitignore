@@ -50,3 +50,6 @@ yarn-error.*
 *.aab
 *.keyinfo
 .claude/
+# Play upload keystore and its passwords -- back these up, never commit them
+/credentials/
+*.keystore

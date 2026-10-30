@@ -26,7 +26,8 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#8E4162"
-      }
+      },
+      "versionCode": 1
     },
     "web": {
       "bundler": "metro",
@@ -45,6 +46,7 @@
         }
       ],
       "./plugins/withPodsDeploymentTarget",
+      "./plugins/withReleaseSigning",
       [
         "expo-build-properties",
         {
