@@ -120,7 +120,7 @@ export default function LessonPlayer({ trackId, title }: { trackId: string; titl
       <Surface style={styles.card} elevation={1}>
         <Text variant="titleMedium" style={styles.locked}>השיעור הזה נעול</Text>
         <Text variant="bodyMedium" style={styles.lockedBody}>
-          לפתיחת גישה אפשר לפנות לעידית בוואטסאפ. הגישה ניתנת לשנה.
+          לפתיחת גישה אפשר לפנות לעידית בוואטסאפ.
         </Text>
         <Button mode="contained" icon="whatsapp" onPress={() => window.open(WHATSAPP_URL, '_blank')}>
           פנייה לעידית

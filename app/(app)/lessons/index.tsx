@@ -2,14 +2,14 @@ import { useCallback, useState } from 'react';
 import { FlatList, Linking, RefreshControl, StyleSheet, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import {
-  Text, Card, Chip, Button, Surface, Banner, ActivityIndicator, Appbar, SegmentedButtons,
+  Text, Card, Chip, Button, Banner, ActivityIndicator, Appbar, SegmentedButtons,
 } from 'react-native-paper';
 import { useAuth } from '@/context/auth';
 import { supabase } from '@/lib/supabase';
 import { formatHebrewDate } from '@/lib/hebrewDate';
 import HeaderTitle from '@/components/HeaderTitle';
 import { CATEGORIES, CATEGORY_LABEL, type Category } from '@/lib/categories';
-import { colors, WHATSAPP_URL } from '@/lib/theme';
+import { APP_NAME, colors, WHATSAPP_URL } from '@/lib/theme';
 
 type Lesson = {
   id: string;
@@ -23,7 +23,7 @@ type Lesson = {
 };
 
 export default function Lessons() {
-  const { username, isAdmin, hasAccess, accessExpiresAt, signOut, refreshAccess } = useAuth();
+  const { username, isAdmin, hasAccess, signOut, refreshAccess } = useAuth();
   const router = useRouter();
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,14 +49,11 @@ export default function Lessons() {
     setRefreshing(false);
   };
 
-  const expiry = accessExpiresAt
-    ? formatHebrewDate(accessExpiresAt)
-    : null;
 
   return (
     <View style={styles.flex}>
       <Appbar.Header elevated>
-        <Appbar.Content title={<HeaderTitle title="השיעורים" subtitle={username} />} />
+        <Appbar.Content title={<HeaderTitle title={APP_NAME} subtitle={username} />} />
         {isAdmin && (
           <Button
             mode="contained-tonal" icon="cog" compact style={styles.adminButton}
@@ -76,14 +73,6 @@ export default function Lessons() {
         >
           השיעור הפתוח זמין לכולן. לגישה לשאר השיעורים ולסיכומים — אפשר לפנות לעידית בוואטסאפ.
         </Banner>
-      )}
-
-      {hasAccess && expiry && !isAdmin && (
-        <Surface style={styles.accessBar} elevation={0}>
-          <Text variant="bodySmall" style={styles.accessText}>
-            הגישה שלך בתוקף עד {expiry}
-          </Text>
-        </Surface>
       )}
 
       <SegmentedButtons
@@ -157,8 +146,6 @@ const styles = StyleSheet.create({
   card: { backgroundColor: colors.surface, borderRadius: 16 },
   chips: { flexDirection: 'row', gap: 6, marginEnd: 12 },
   adminButton: { marginEnd: 4 },
-  accessBar: { paddingVertical: 6, paddingHorizontal: 16, backgroundColor: colors.primaryDark },
-  accessText: { color: '#fff', textAlign: 'center' },
   loader: { marginTop: 48 },
   empty: { textAlign: 'center', marginTop: 48, color: colors.textSecondary },
   fab: { position: 'absolute', bottom: 24, start: 24, end: 24, borderRadius: 12 },

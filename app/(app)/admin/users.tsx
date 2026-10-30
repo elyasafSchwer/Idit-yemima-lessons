@@ -6,7 +6,8 @@ import {
   ActivityIndicator, Snackbar, IconButton,
 } from 'react-native-paper';
 import { supabase } from '@/lib/supabase';
-import { formatHebrewDate } from '@/lib/hebrewDate';
+import { formatHebrewDate, localISODate } from '@/lib/hebrewDate';
+import HebrewDatePicker from '@/components/HebrewDatePicker';
 import { goBack } from '@/lib/navigation';
 import BackAction from '@/components/BackAction';
 import HeaderTitle from '@/components/HeaderTitle';
@@ -33,6 +34,8 @@ export default function AdminUsers() {
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [deleteFor, setDeleteFor] = useState<Row | null>(null);
+  const [grantFor, setGrantFor] = useState<Row | null>(null);
+  const [grantUntil, setGrantUntil] = useState('');
   const [roleFor, setRoleFor] = useState<{ row: Row; role: Row['role'] } | null>(null);
 
   const load = useCallback(async () => {
@@ -67,22 +70,39 @@ export default function AdminUsers() {
     [rows, query],
   );
 
-  const grant = async (row: Row, fromExisting: boolean) => {
+  // Idit decides how long access lasts and picks the end date herself; the
+  // app makes no promise about a period. An existing grant has its end date
+  // moved (later or earlier); otherwise a new one starts today.
+  const openGrant = (row: Row) => {
+    const def = new Date();
+    def.setFullYear(def.getFullYear() + 1);
+    setGrantUntil(row.expiresAt ? localISODate(new Date(row.expiresAt)) : localISODate(def));
+    setGrantFor(row);
+  };
+
+  const submitGrant = async () => {
+    if (!grantFor) return;
+    const row = grantFor;
+    // Access lasts through the chosen day, in Israel's local time.
+    const end = new Date(`${grantUntil}T23:59:59`);
+    if (end.getTime() <= Date.now()) { setToast('צריך לבחור תאריך עתידי'); return; }
+    setGrantFor(null);
     setBusyId(row.id);
-    // Extending starts from the current expiry so a renewal does not lose the
-    // remaining days; a fresh grant starts today.
-    const start = fromExisting && row.expiresAt ? new Date(row.expiresAt) : new Date();
-    const end = new Date(start);
-    end.setFullYear(end.getFullYear() + 1);
-    const { error } = await supabase.from('entitlements').insert({
-      user_id: row.id,
-      starts_at: start.toISOString(),
-      expires_at: end.toISOString(),
-      granted_by: session?.user?.id ?? null,
-      method: 'manual',
-    });
+    const now = new Date().toISOString();
+    const { error } = row.expiresAt
+      ? await supabase.from('entitlements')
+        .update({ expires_at: end.toISOString() })
+        .eq('user_id', row.id)
+        .gt('expires_at', now)
+      : await supabase.from('entitlements').insert({
+        user_id: row.id,
+        starts_at: now,
+        expires_at: end.toISOString(),
+        granted_by: session?.user?.id ?? null,
+        method: 'manual',
+      });
     setBusyId(null);
-    setToast(error ? 'הפעולה נכשלה' : `${row.username} — גישה עד ${formatHebrewDate(end)}`);
+    setToast(error ? 'הפעולה נכשלה' : `${row.username} — גישה עד ${formatHebrewDate(grantUntil)}`);
     if (!error) load();
   };
 
@@ -211,9 +231,9 @@ export default function AdminUsers() {
                     </Menu>
                     <Button
                       mode="contained" compact loading={busy} disabled={busy}
-                      onPress={() => grant(item, !!expires)}
+                      onPress={() => openGrant(item)}
                     >
-                      {expires ? 'הארכה בשנה' : 'פתיחת גישה לשנה'}
+                      {expires ? 'שינוי תאריך הגישה' : 'פתיחת גישה'}
                     </Button>
                   </Card.Actions>
                 )}
@@ -234,6 +254,19 @@ export default function AdminUsers() {
       )}
 
       <Portal>
+        <Dialog visible={!!grantFor} onDismiss={() => setGrantFor(null)}>
+          <Dialog.Title>{grantFor?.expiresAt ? 'שינוי תאריך הגישה' : 'פתיחת גישה'} — {grantFor?.username}</Dialog.Title>
+          <Dialog.Content>
+            {!!grantUntil && (
+              <HebrewDatePicker label="הגישה בתוקף עד" value={grantUntil} onChange={setGrantUntil} />
+            )}
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setGrantFor(null)}>ביטול</Button>
+            <Button mode="contained" onPress={submitGrant}>שמירה</Button>
+          </Dialog.Actions>
+        </Dialog>
+
         <Dialog visible={!!deleteFor} onDismiss={() => setDeleteFor(null)}>
           <Dialog.Title>מחיקת {deleteFor?.username}</Dialog.Title>
           <Dialog.Content>

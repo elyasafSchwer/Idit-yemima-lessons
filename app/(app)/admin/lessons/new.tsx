@@ -7,7 +7,8 @@ import {
   HelperText, ProgressBar, Divider, SegmentedButtons,
 } from 'react-native-paper';
 import { supabase } from '@/lib/supabase';
-import { formatHebrewDate } from '@/lib/hebrewDate';
+import { localISODate } from '@/lib/hebrewDate';
+import HebrewDatePicker from '@/components/HebrewDatePicker';
 import Toggle from '@/components/Toggle';
 import { goBack } from '@/lib/navigation';
 import BackAction from '@/components/BackAction';
@@ -30,7 +31,7 @@ export default function NewLesson() {
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(localISODate());
   const [isFree, setIsFree] = useState(false);
   // Every catalogue item, lesson or summary, has a single 'full' track.
   const kind: TrackKind = 'full';
@@ -75,7 +76,6 @@ export default function NewLesson() {
   const submit = async () => {
     if (!existingId && !title.trim()) { setError('צריך כותרת'); return; }
     if (parts.length === 0) { setError('צריך לבחור לפחות הקלטה אחת'); return; }
-    if (!existingId && !/^\d{4}-\d{2}-\d{2}$/.test(date)) { setError('תאריך בפורמט YYYY-MM-DD'); return; }
 
     setError(null);
     setProgress(0);
@@ -191,13 +191,7 @@ export default function NewLesson() {
               mode="outlined" label="תיאור קצר" value={description} onChangeText={setDescription}
               multiline numberOfLines={3}
             />
-            <TextInput
-              mode="outlined" label="תאריך השיעור" value={date} onChangeText={setDate}
-              placeholder="2026-10-19" autoCapitalize="none"
-            />
-            {/^\d{4}-\d{2}-\d{2}$/.test(date) && (
-              <HelperText type="info" visible>{formatHebrewDate(date)}</HelperText>
-            )}
+            <HebrewDatePicker label="תאריך השיעור" value={date} onChange={setDate} />
 
             <View style={styles.switchRow}>
               <Text variant="bodyLarge">פתוח לכולן בחינם</Text>

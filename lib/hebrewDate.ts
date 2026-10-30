@@ -48,14 +48,44 @@ function rataDie(year: number, month: number, day: number): number {
   return 365 * y + Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400) + before + day;
 }
 
+function gregorianFromRataDie(rd: number) {
+  let year = Math.floor((rd - 1) / 365.2425) + 1;
+  while (rataDie(year + 1, 1, 1) <= rd) year += 1;
+  while (rataDie(year, 1, 1) > rd) year -= 1;
+  let month = 12;
+  while (rataDie(year, month, 1) > rd) month -= 1;
+  return { year, month, day: rd - rataDie(year, month, 1) + 1 };
+}
+
+// Months of a Hebrew year in calendar order, Tishrei first.
+export function monthsOfYear(hy: number): number[] {
+  return isLeap(hy) ? [7, 8, 9, 10, 11, 12, 13, 1, 2, 3, 4, 5, 6] : [7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6];
+}
+
+export const hebrewMonthLength = daysInMonth;
+
+export function hebrewMonthName(month: number, hy: number): string {
+  return month === 12 && isLeap(hy) ? 'אדר א׳' : MONTHS[month];
+}
+
+// Hebrew date -> 'YYYY-MM-DD' (Gregorian), the format the date columns use.
+export function fromHebrew(hy: number, hm: number, hd: number): string {
+  let rd = EPOCH + elapsedDays(hy);
+  for (const m of monthsOfYear(hy)) {
+    if (m === hm) break;
+    rd += daysInMonth(m, hy);
+  }
+  const g = gregorianFromRataDie(rd + hd - 1);
+  return `${g.year}-${String(g.month).padStart(2, '0')}-${String(g.day).padStart(2, '0')}`;
+}
+
 export function toHebrew(year: number, month: number, day: number) {
   const abs = rataDie(year, month, day);
   let hy = year + 3760;
   while (EPOCH + elapsedDays(hy + 1) <= abs) hy += 1;
   while (EPOCH + elapsedDays(hy) > abs) hy -= 1;
   let rest = abs - (EPOCH + elapsedDays(hy));  // 0 = 1 Tishrei
-  const order = isLeap(hy) ? [7, 8, 9, 10, 11, 12, 13, 1, 2, 3, 4, 5, 6] : [7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6];
-  for (const m of order) {
+  for (const m of monthsOfYear(hy)) {
     const len = daysInMonth(m, hy);
     if (rest < len) return { year: hy, month: m, day: rest + 1, leap: isLeap(hy) };
     rest -= len;
@@ -96,6 +126,11 @@ export function formatHebrewDate(value: string | Date): string {
     y = date.getFullYear(); m = date.getMonth() + 1; d = date.getDate();
   }
   const h = toHebrew(y, m, d);
-  const month = h.month === 12 && h.leap ? 'אדר א׳' : MONTHS[h.month];
-  return `${gematria(h.day)} ב${month} ${gematria(h.year)}`;
+  return `${gematria(h.day)} ב${hebrewMonthName(h.month, h.year)} ${gematria(h.year)}`;
+}
+
+// A Date as 'YYYY-MM-DD' in the device's local time. toISOString() is UTC, so
+// in Israel it gives yesterday's date for the first hours after midnight.
+export function localISODate(date: Date = new Date()): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }

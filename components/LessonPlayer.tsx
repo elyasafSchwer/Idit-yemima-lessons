@@ -14,7 +14,7 @@ import Slider from '@react-native-community/slider';
 import {
   startPlaybackSession, loadProgress, saveProgress, formatTime, NoAccessError,
 } from '@/lib/playback';
-import { colors, WHATSAPP_URL } from '@/lib/theme';
+import { APP_NAME, colors, WHATSAPP_URL } from '@/lib/theme';
 
 const RATES = ['1', '1.25', '1.5'];
 const PROGRESS_SAVE_INTERVAL_MS = 10_000;
@@ -34,6 +34,8 @@ export default function LessonPlayer({ trackId, title }: { trackId: string; titl
   const status = useAudioPlayerStatus(player);
   const lastSaved = useRef(0);
   const didSeekToResume = useRef(false);
+  const currentTime = useRef(0);
+  currentTime.current = status.currentTime ?? 0;
 
   useEffect(() => {
     let cancelled = false;
@@ -79,10 +81,27 @@ export default function LessonPlayer({ trackId, title }: { trackId: string; titl
     }
   }, [status.playing, status.currentTime, trackId]);
 
-  // Persist on unmount so closing mid-lesson is not lost.
+  // Persist on unmount so closing mid-lesson is not lost. Reads the time from
+  // a ref: with currentTime as a dependency this cleanup ran on every status
+  // update and saved progress twice a second.
   useEffect(() => () => {
-    if (status.currentTime > 0) saveProgress(trackId, status.currentTime).catch(() => {});
-  }, [trackId, status.currentTime]);
+    if (currentTime.current > 0) saveProgress(trackId, currentTime.current).catch(() => {});
+  }, [trackId]);
+
+  // The media notification (pull-down shade) and lock-screen controls, with
+  // position, play/pause and skip, as podcast apps have. On Android this also
+  // keeps playback alive in the background past the OS's ~3 minute limit.
+  useEffect(() => {
+    if (!status.isLoaded) return;
+    player.setActiveForLockScreen(
+      true,
+      { title, artist: APP_NAME },
+      { showSeekForward: true, showSeekBackward: true },
+    );
+  }, [status.isLoaded, player, title]);
+  useEffect(() => () => {
+    try { player.clearLockScreenControls(); } catch { /* already released */ }
+  }, [player]);
 
   const changeRate = useCallback((r: string) => {
     setRate(r);
@@ -94,7 +113,7 @@ export default function LessonPlayer({ trackId, title }: { trackId: string; titl
       <Surface style={styles.card} elevation={1}>
         <Text variant="titleMedium" style={styles.locked}>השיעור הזה נעול</Text>
         <Text variant="bodyMedium" style={styles.lockedBody}>
-          לפתיחת גישה אפשר לפנות לעידית בוואטסאפ. הגישה ניתנת לשנה.
+          לפתיחת גישה אפשר לפנות לעידית בוואטסאפ.
         </Text>
         <Button mode="contained" icon="whatsapp" onPress={() => Linking.openURL(WHATSAPP_URL)}>
           פנייה לעידית

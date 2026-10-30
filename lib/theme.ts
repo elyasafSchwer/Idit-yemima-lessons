@@ -36,6 +36,10 @@ export const colors = {
   error: '#C0392B',
 };
 
+// Shown in the catalogue header and on the lock screen. Temporary, like the
+// rest of the branding, until Idit picks a name.
+export const APP_NAME = 'שיעורי עידית בתורת ימימה';
+
 // Lessons are bought outside the app: Idit collects via Bit/Paybox on WhatsApp
 // and opens access from her own admin screens.
 export const WHATSAPP_URL = 'https://wa.me/972527710084';
