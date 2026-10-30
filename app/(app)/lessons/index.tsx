@@ -1,16 +1,16 @@
 import { useCallback, useState } from 'react';
-import { FlatList, Linking, RefreshControl, StyleSheet, View } from 'react-native';
+import { FlatList, Linking, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import {
-  Text, Card, Chip, Button, Surface, Banner, ActivityIndicator, Appbar,
+  Text, Button, Surface, Banner, ActivityIndicator, Appbar, FAB, Icon,
 } from 'react-native-paper';
 import { useAuth } from '@/context/auth';
 import { supabase } from '@/lib/supabase';
 import Tabs from '@/components/Tabs';
-import { formatHebrewDate } from '@/lib/hebrewDate';
+import { formatHebrewDate, gematria } from '@/lib/hebrewDate';
 import HeaderTitle from '@/components/HeaderTitle';
 import { CATEGORIES, CATEGORY_LABEL, type Category } from '@/lib/categories';
-import { APP_NAME, colors, WHATSAPP_URL } from '@/lib/theme';
+import { APP_NAME, colors, fonts, WHATSAPP_URL, appbarStyle } from '@/lib/theme';
 
 type Lesson = {
   id: string;
@@ -55,11 +55,11 @@ export default function Lessons() {
 
   return (
     <View style={styles.flex}>
-      <Appbar.Header elevated>
+      <Appbar.Header style={appbarStyle}>
         <Appbar.Content title={<HeaderTitle title={APP_NAME} subtitle={username} />} />
         {isAdmin && (
           <Button
-            mode="contained-tonal" icon="cog" compact style={styles.adminButton}
+            mode="outlined" icon="tune-variant" compact style={styles.adminButton}
             onPress={() => router.push('/(app)/admin')}
           >
             ניהול
@@ -106,60 +106,95 @@ export default function Lessons() {
               {category === 'summary' ? 'עדיין אין סיכומים.' : 'עדיין אין שיעורים.'}
             </Text>
           }
-          renderItem={({ item }) => {
-            const locked = !item.is_free && !hasAccess;
-            return (
-              <Card
-                style={styles.card}
-                onPress={() => router.push(`/(app)/lessons/${item.id}`)}
-              >
-                <Card.Title
-                  title={item.lesson_number ? `${item.lesson_number}. ${item.title}` : item.title}
-                  subtitle={item.lesson_date
-                    ? formatHebrewDate(item.lesson_date)
-                    : undefined}
-                  right={() => (
-                    <View style={styles.chips}>
-                      {item.is_free && <Chip compact>פתוח</Chip>}
-                      {locked && <Chip compact icon="lock">נעול</Chip>}
-                    </View>
-                  )}
-                />
-                {item.description && (
-                  <Card.Content>
-                    <Text variant="bodyMedium" numberOfLines={2}>{item.description}</Text>
-                  </Card.Content>
-                )}
-              </Card>
-            );
-          }}
+          renderItem={({ item }) => (
+            <LessonRow
+              lesson={item}
+              locked={!item.is_free && !hasAccess}
+              onPress={() => router.push(`/(app)/lessons/${item.id}`)}
+            />
+          )}
         />
       )}
 
       {isAdmin && (
-        <Button
-          mode="contained"
+        <FAB
           icon="plus"
+          label={category === 'summary' ? 'סיכום חדש' : 'שיעור חדש'}
+          color="#fff"
           style={styles.fab}
           onPress={() => router.push({ pathname: '/(app)/admin/lessons/new', params: { category } })}
-        >
-          {category === 'summary' ? 'סיכום חדש' : 'שיעור חדש'}
-        </Button>
+        />
       )}
     </View>
   );
 }
 
+// One lesson in the list. The number is set as a Hebrew numeral in the book
+// serif, like a chapter marker in a sefer: it is the one decorative element,
+// so everything else in the row stays plain.
+function LessonRow({ lesson, locked, onPress }: { lesson: Lesson; locked: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+      accessibilityRole="button"
+    >
+      <View style={styles.numeral}>
+        {lesson.lesson_number
+          ? <Text style={styles.numeralText}>{gematria(lesson.lesson_number)}</Text>
+          : null}
+      </View>
+      <View style={styles.rowBody}>
+        <Text style={styles.rowTitle} numberOfLines={2}>{lesson.title}</Text>
+        {!!lesson.description && (
+          <Text variant="bodyMedium" style={styles.rowDescription} numberOfLines={2}>{lesson.description}</Text>
+        )}
+        <View style={styles.rowMeta}>
+          {!!lesson.lesson_date && (
+            <Text variant="bodySmall" style={styles.rowDate}>{formatHebrewDate(lesson.lesson_date)}</Text>
+          )}
+          {lesson.is_free && <Text variant="labelSmall" style={styles.free}>פתוח לכולן</Text>}
+        </View>
+      </View>
+      <View style={styles.rowEnd}>
+        {locked
+          ? <Icon source="lock-outline" size={18} color={colors.locked} />
+          : <Icon source="play-circle-outline" size={26} color={colors.primary} />}
+      </View>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.background },
-  accessBar: { paddingVertical: 6, paddingHorizontal: 16, backgroundColor: colors.primaryDark },
-  accessText: { color: '#fff', textAlign: 'center' },
-  tabs: { marginHorizontal: 16, marginTop: 12 },
-  list: { padding: 16, gap: 12, paddingBottom: 96 },
-  card: { backgroundColor: colors.surface, borderRadius: 16 },
-  chips: { flexDirection: 'row', gap: 6, marginEnd: 12 },
+  accessBar: {
+    paddingVertical: 8, paddingHorizontal: 20,
+    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.outline,
+  },
+  accessText: { color: colors.primaryDark, textAlign: 'center' },
+  tabs: { marginHorizontal: 20, marginTop: 8 },
+  list: { paddingHorizontal: 16, paddingTop: 16, gap: 10, paddingBottom: 112 },
   adminButton: { marginEnd: 4 },
+  row: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    backgroundColor: colors.surface, borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: colors.outline,
+    paddingVertical: 16, paddingHorizontal: 16,
+  },
+  rowPressed: { backgroundColor: colors.primarySoft },
+  numeral: {
+    width: 48, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center',
+    borderEndWidth: StyleSheet.hairlineWidth, borderEndColor: colors.outline, paddingEnd: 12,
+  },
+  numeralText: { fontFamily: fonts.serifBold, fontSize: 26, lineHeight: 32, color: colors.primary },
+  rowBody: { flex: 1, gap: 4 },
+  rowTitle: { fontFamily: fonts.serif, fontSize: 19, lineHeight: 26, color: colors.text },
+  rowDescription: { color: colors.textSecondary },
+  rowMeta: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 2 },
+  rowDate: { color: colors.textSecondary },
+  free: { color: colors.primary },
+  rowEnd: { width: 28, alignItems: 'center' },
   loader: { marginTop: 48 },
   empty: { textAlign: 'center', marginTop: 48, color: colors.textSecondary },
-  fab: { position: 'absolute', bottom: 24, start: 24, end: 24, borderRadius: 12 },
+  fab: { position: 'absolute', bottom: 24, end: 20, backgroundColor: colors.primary, borderRadius: 28 },
 });

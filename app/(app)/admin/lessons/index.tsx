@@ -13,7 +13,7 @@ import BackAction from '@/components/BackAction';
 import { useAuth } from '@/context/auth';
 import { retryIngest } from '@/lib/ingest';
 import { CATEGORIES, CATEGORY_LABEL, CATEGORY_ITEM, type Category } from '@/lib/categories';
-import { colors } from '@/lib/theme';
+import { colors, appbarStyle } from '@/lib/theme';
 
 type Job = { id: string; status: string; error: string | null; created_at: string };
 type Track = { status: string; duration_seconds: number | null };
@@ -111,7 +111,7 @@ export default function ManageLessons() {
 
   return (
     <View style={styles.flex}>
-      <Appbar.Header elevated>
+      <Appbar.Header style={appbarStyle}>
         <BackAction onPress={() => goBack(router, '/(app)/admin')} />
         <Appbar.Content title="ניהול שיעורים" />
         <Appbar.Action icon="refresh" onPress={onRefresh} />
@@ -144,7 +144,7 @@ export default function ManageLessons() {
             const visible = lesson.status === 'ready';
             const disabled = busy === lesson.id;
             return (
-              <Card style={styles.card}>
+              <Card mode="outlined" style={styles.card}>
                 <Card.Title
                   title={lesson.lesson_number ? `${lesson.lesson_number}. ${lesson.title}` : lesson.title}
                   titleNumberOfLines={2}

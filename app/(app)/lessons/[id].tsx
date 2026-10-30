@@ -1,16 +1,15 @@
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
-import { Appbar, Text, Chip, ActivityIndicator } from 'react-native-paper';
+import { Appbar, Text, ActivityIndicator } from 'react-native-paper';
 import { supabase } from '@/lib/supabase';
-import { formatHebrewDate } from '@/lib/hebrewDate';
+import { formatHebrewDate, gematria } from '@/lib/hebrewDate';
 import { goBack } from '@/lib/navigation';
 import BackAction from '@/components/BackAction';
 import { useAuth } from '@/context/auth';
 import LessonPlayer from '@/components/LessonPlayer';
-import HeaderTitle from '@/components/HeaderTitle';
-import { CATEGORY_ITEM, type Category } from '@/lib/categories';
-import { colors } from '@/lib/theme';
+import { CATEGORY_ITEM, CATEGORY_LABEL, type Category } from '@/lib/categories';
+import { colors, fonts, appbarStyle } from '@/lib/theme';
 
 type Track = { id: string; kind: 'full' | 'summary'; duration_seconds: number | null; status: string };
 type Lesson = {
@@ -53,7 +52,7 @@ export default function LessonDetail() {
   if (!lesson) {
     return (
       <View style={styles.flex}>
-        <Appbar.Header elevated>
+        <Appbar.Header style={appbarStyle}>
           <BackAction onPress={() => goBack(router, '/(app)/lessons')} />
           <Appbar.Content title="שיעור" />
         </Appbar.Header>
@@ -70,30 +69,32 @@ export default function LessonDetail() {
 
   return (
     <View style={styles.flex}>
-      <Appbar.Header elevated>
+      <Appbar.Header style={appbarStyle}>
         <BackAction onPress={() => goBack(router, '/(app)/lessons')} />
-        <Appbar.Content
-          title={(
-            <HeaderTitle
-              title={lesson.lesson_number ? `${label} ${lesson.lesson_number}` : label}
-              subtitle={lesson.lesson_date
-                ? formatHebrewDate(lesson.lesson_date)
-                : null}
-            />
-          )}
-        />
+        <Appbar.Content title={CATEGORY_LABEL[lesson.category]} titleStyle={styles.barTitle} />
       </Appbar.Header>
 
       <ScrollView contentContainerStyle={styles.wrap}>
-        <View style={styles.titleRow}>
-          <Text variant="headlineSmall" style={styles.title}>{lesson.title}</Text>
-          {lesson.is_free && <Chip compact>פתוח</Chip>}
-          {locked && <Chip compact icon="lock">נעול</Chip>}
+        {/* A title page, as in a sefer: the numeral, the title, the date. */}
+        <View style={styles.opening}>
+          {!!lesson.lesson_number && (
+            <Text style={styles.numeral}>{gematria(lesson.lesson_number)}</Text>
+          )}
+          <Text style={styles.title}>{lesson.title}</Text>
+          <Text variant="bodySmall" style={styles.meta}>
+            {[label, lesson.lesson_date ? formatHebrewDate(lesson.lesson_date) : null]
+              .filter(Boolean).join(', ')}
+          </Text>
+          {(lesson.is_free || locked) && (
+            <Text variant="labelMedium" style={locked ? styles.locked : styles.free}>
+              {locked ? 'נעול' : 'פתוח לכולן'}
+            </Text>
+          )}
+          {!!lesson.description && (
+            <Text variant="bodyLarge" style={styles.description}>{lesson.description}</Text>
+          )}
+          <View style={styles.rule} />
         </View>
-
-        {lesson.description && (
-          <Text variant="bodyMedium" style={styles.description}>{lesson.description}</Text>
-        )}
 
         {track
           ? <LessonPlayer trackId={track.id} title={lesson.title} />
@@ -105,10 +106,18 @@ export default function LessonDetail() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.background },
-  wrap: { padding: 16, gap: 12, paddingBottom: 40 },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
-  title: { color: colors.text, flexShrink: 1 },
-  description: { color: colors.textSecondary },
+  barTitle: { fontFamily: fonts.sansMedium, fontSize: 16, color: colors.textSecondary },
+  wrap: { padding: 20, gap: 16, paddingBottom: 48 },
+  opening: { alignItems: 'center', gap: 6, paddingTop: 12 },
+  numeral: { fontFamily: fonts.serifBold, fontSize: 44, lineHeight: 52, color: colors.primary },
+  title: {
+    fontFamily: fonts.serif, fontSize: 28, lineHeight: 36, color: colors.text, textAlign: 'center',
+  },
+  meta: { color: colors.textSecondary, textAlign: 'center' },
+  free: { color: colors.primary },
+  locked: { color: colors.locked },
+  description: { color: colors.textSecondary, textAlign: 'center', marginTop: 8, maxWidth: 480 },
+  rule: { width: 48, height: 1, backgroundColor: colors.primary, opacity: 0.5, marginTop: 18 },
   loader: { marginTop: 64 },
   empty: { textAlign: 'center', marginTop: 48, color: colors.textSecondary },
 });

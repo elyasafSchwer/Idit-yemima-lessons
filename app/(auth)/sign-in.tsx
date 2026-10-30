@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, Image } from 'react-native';
 import { Link } from 'expo-router';
 import { Text, TextInput, Button, Surface, HelperText } from 'react-native-paper';
 import { useAuth } from '@/context/auth';
@@ -36,12 +36,13 @@ export default function SignIn() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
+        <Image source={require('../../assets/icon.png')} style={styles.logo} accessibilityIgnoresInvertColors />
         <Text variant="displaySmall" style={styles.title}>שיעורי עידית</Text>
         <Text variant="bodyLarge" style={styles.subtitle}>
           שיעורים בתורות הרבנית ימימה מזרחי
         </Text>
 
-        <Surface style={styles.card} elevation={2}>
+        <Surface style={styles.card} elevation={0}>
           <Field
             mode="outlined"
             label="שם משתמש"
@@ -94,10 +95,14 @@ export default function SignIn() {
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.background },
   wrap: { flexGrow: 1, justifyContent: 'center', padding: 24 },
-  title: { textAlign: 'center', color: colors.primary, fontWeight: '700' },
+  logo: { width: 72, height: 72, borderRadius: 18, alignSelf: 'center', marginBottom: 16 },
+  title: { textAlign: 'center', color: colors.primaryDark },
   subtitle: { textAlign: 'center', color: colors.textSecondary, marginTop: 6, marginBottom: 28 },
-  card: { borderRadius: 16, padding: 20, backgroundColor: colors.surface },
+  card: {
+    borderRadius: 14, padding: 20, backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: colors.outline,
+  },
   input: { marginBottom: 12, backgroundColor: colors.surface },
-  button: { marginTop: 8, borderRadius: 12, paddingVertical: 4 },
+  button: { marginTop: 8, borderRadius: 10, paddingVertical: 4 },
   footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 20 },
 });

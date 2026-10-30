@@ -7,6 +7,9 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { PaperProvider, ActivityIndicator } from 'react-native-paper';
 import { setAudioModeAsync } from 'expo-audio';
 import { AuthProvider, useAuth } from '@/context/auth';
+import { useFonts } from 'expo-font';
+import { FrankRuhlLibre_500Medium, FrankRuhlLibre_700Bold } from '@expo-google-fonts/frank-ruhl-libre';
+import { Assistant_400Regular, Assistant_600SemiBold } from '@expo-google-fonts/assistant';
 import { theme, colors } from '@/lib/theme';
 
 SplashScreen.preventAutoHideAsync();
@@ -74,7 +77,12 @@ export default function RootLayout() {
 
 function RootNavigator() {
   const { session, isLoading, isProfileLoading } = useAuth();
-  const ready = !isLoading && !isProfileLoading;
+  // The theme's type scale names these families; rendering before they load
+  // would flash the system font and then reflow every screen.
+  const [fontsLoaded, fontError] = useFonts({
+    FrankRuhlLibre_500Medium, FrankRuhlLibre_700Bold, Assistant_400Regular, Assistant_600SemiBold,
+  });
+  const ready = !isLoading && !isProfileLoading && (fontsLoaded || !!fontError);
   const router = useRouter();
   const navReady = !!useRootNavigationState()?.key;
 

@@ -12,7 +12,7 @@ import { goBack } from '@/lib/navigation';
 import BackAction from '@/components/BackAction';
 import HeaderTitle from '@/components/HeaderTitle';
 import { useAuth } from '@/context/auth';
-import { colors } from '@/lib/theme';
+import { colors, appbarStyle } from '@/lib/theme';
 
 type Row = {
   id: string;
@@ -149,7 +149,7 @@ export default function AdminUsers() {
 
   return (
     <View style={styles.flex}>
-      <Appbar.Header elevated>
+      <Appbar.Header style={appbarStyle}>
         <BackAction onPress={() => goBack(router, '/(app)/admin')} />
         <Appbar.Content title={<HeaderTitle title="הרשאות תלמידות" subtitle={`${rows.length} משתמשות`} />} />
       </Appbar.Header>
@@ -173,7 +173,7 @@ export default function AdminUsers() {
             const soon = expires ? expires.getTime() - Date.now() < 30 * DAY : false;
             const busy = busyId === item.id;
             return (
-              <Card style={styles.card}>
+              <Card mode="outlined" style={styles.card}>
                 <Card.Title
                   title={item.username}
                   subtitle={

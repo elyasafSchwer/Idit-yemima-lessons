@@ -1,18 +1,45 @@
-import { Platform, View } from 'react-native';
-import { SegmentedButtons, type SegmentedButtonsProps } from 'react-native-paper';
+import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Text } from 'react-native-paper';
+import { colors, fonts } from '@/lib/theme';
 
-// Paper rounds and borders the first segment as the LEFT end. Under
-// dir="rtl" on web the first segment is drawn on the right, so its right edge
-// was left open and the control looked cut off. On web, lay it out LTR with
-// the segments reversed: the same right-to-left order, with correct edges.
-// Native apps are RTL at the OS level and Paper handles them.
-const LTR = { dir: 'ltr' } as object;
+type Props = {
+  value: string;
+  onValueChange: (value: string) => void;
+  buttons: { value: string; label: string }[];
+  style?: StyleProp<ViewStyle>;
+};
 
-export default function Tabs(props: SegmentedButtonsProps) {
-  if (Platform.OS !== 'web') return <SegmentedButtons {...props} />;
+// Text tabs with an underline under the selected one, in place of Paper's
+// segmented pill. A plain row, so it follows the page's right-to-left flow on
+// every platform (Paper's segments were drawn left-to-right on web).
+export default function Tabs({ value, onValueChange, buttons, style }: Props) {
   return (
-    <View {...LTR} style={props.style}>
-      <SegmentedButtons {...props} style={undefined} buttons={[...props.buttons].reverse()} />
+    <View style={[styles.row, style]} accessibilityRole="tablist">
+      {buttons.map((b) => {
+        const selected = b.value === value;
+        return (
+          <Pressable
+            key={b.value}
+            onPress={() => onValueChange(b.value)}
+            style={[styles.tab, selected && styles.selected]}
+            accessibilityRole="tab"
+            accessibilityState={{ selected }}
+          >
+            <Text style={[styles.label, selected && styles.labelSelected]}>{b.label}</Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  row: {
+    flexDirection: 'row', gap: 24,
+    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.outline,
+  },
+  tab: { paddingVertical: 10, borderBottomWidth: 2, borderBottomColor: 'transparent', marginBottom: -1 },
+  selected: { borderBottomColor: colors.primary },
+  label: { fontFamily: fonts.sansMedium, fontSize: 15, color: colors.textSecondary },
+  labelSelected: { color: colors.primary },
+});

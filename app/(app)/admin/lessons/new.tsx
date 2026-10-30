@@ -18,7 +18,7 @@ import HeaderTitle from '@/components/HeaderTitle';
 import { useAuth } from '@/context/auth';
 import { dispatchIngest, type TrackKind } from '@/lib/ingest';
 import { CATEGORIES, CATEGORY_ITEM, type Category } from '@/lib/categories';
-import { colors } from '@/lib/theme';
+import { colors, appbarStyle } from '@/lib/theme';
 
 type Part = { uri: string; name: string; size: number | null };
 
@@ -165,7 +165,7 @@ export default function NewLesson() {
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <Appbar.Header elevated>
+      <Appbar.Header style={appbarStyle}>
         <BackAction onPress={() => goBack(router, '/(app)/admin/lessons')} />
         <Appbar.Content
           title={(
@@ -214,7 +214,7 @@ export default function NewLesson() {
         </HelperText>
 
         {parts.map((p, i) => (
-          <Card key={`${p.uri}-${i}`} style={styles.partCard}>
+          <Card mode="outlined" key={`${p.uri}-${i}`} style={styles.partCard}>
             <Card.Title
               title={`${i + 1}. ${p.name}`}
               titleNumberOfLines={2}

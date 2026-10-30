@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Text, IconButton, Button, Surface, ActivityIndicator } from 'react-native-paper';
-import Tabs from '@/components/Tabs';
+import RatePicker from '@/components/RatePicker';
 import Hls from 'hls.js';
 import {
   startPlaybackSession, loadProgress, saveProgress, formatTime, NoAccessError,
@@ -118,7 +118,7 @@ export default function LessonPlayer({ trackId, title }: { trackId: string; titl
 
   if (error === 'no_access') {
     return (
-      <Surface style={styles.card} elevation={1}>
+      <Surface style={styles.card} elevation={0}>
         <Text variant="titleMedium" style={styles.locked}>השיעור הזה נעול</Text>
         <Text variant="bodyMedium" style={styles.lockedBody}>
           לפתיחת גישה אפשר לפנות לעידית בוואטסאפ.
@@ -131,14 +131,14 @@ export default function LessonPlayer({ trackId, title }: { trackId: string; titl
   }
   if (error === 'failed') {
     return (
-      <Surface style={styles.card} elevation={1}>
+      <Surface style={styles.card} elevation={0}>
         <Text variant="bodyMedium">לא הצלחנו לטעון את השיעור. כדאי לנסות שוב.</Text>
       </Surface>
     );
   }
 
   return (
-    <Surface style={styles.card} elevation={1}>
+    <Surface style={styles.card} elevation={0}>
       {/* Raw DOM element: this file only ever runs under React DOM. */}
       <audio
         ref={audioRef}
@@ -146,8 +146,6 @@ export default function LessonPlayer({ trackId, title }: { trackId: string; titl
         onEnded={() => setPlaying(false)}
         style={{ display: 'none' }}
       />
-
-      <Text variant="titleMedium" numberOfLines={1}>{title}</Text>
 
       {!ready ? (
         <>
@@ -181,12 +179,7 @@ export default function LessonPlayer({ trackId, title }: { trackId: string; titl
             <IconButton icon="fast-forward-30" size={30} onPress={() => seek(position + 30)} />
           </View>
 
-          <Tabs
-            value={rate}
-            onValueChange={changeRate}
-            density="small"
-            buttons={RATES.map((r) => ({ value: r, label: `${r}x` }))}
-          />
+          <RatePicker value={rate} rates={RATES} onChange={changeRate} />
         </>
       )}
     </Surface>
@@ -194,7 +187,10 @@ export default function LessonPlayer({ trackId, title }: { trackId: string; titl
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: 16, padding: 16, gap: 10, backgroundColor: colors.surface },
+  card: {
+    borderRadius: 12, padding: 20, gap: 12, backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: colors.outline,
+  },
   times: { flexDirection: 'row', justifyContent: 'space-between' },
   controls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   locked: { color: colors.primary },

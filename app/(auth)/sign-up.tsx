@@ -48,7 +48,7 @@ export default function SignUp() {
           ההרשמה חינם. אחריה אפשר לשמוע את השיעור הפתוח, ולבקש גישה לשאר.
         </Text>
 
-        <Surface style={styles.card} elevation={2}>
+        <Surface style={styles.card} elevation={0}>
           <Field
             mode="outlined"
             label="שם משתמש"
@@ -104,10 +104,13 @@ export default function SignUp() {
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.background },
   wrap: { flexGrow: 1, justifyContent: 'center', padding: 24 },
-  title: { textAlign: 'center', color: colors.primary, fontWeight: '700' },
+  title: { textAlign: 'center', color: colors.primaryDark },
   subtitle: { textAlign: 'center', color: colors.textSecondary, marginTop: 6, marginBottom: 28 },
-  card: { borderRadius: 16, padding: 20, backgroundColor: colors.surface },
+  card: {
+    borderRadius: 14, padding: 20, backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: colors.outline,
+  },
   input: { marginBottom: 12, backgroundColor: colors.surface },
-  button: { marginTop: 8, borderRadius: 12, paddingVertical: 4 },
+  button: { marginTop: 8, borderRadius: 10, paddingVertical: 4 },
   footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 20 },
 });

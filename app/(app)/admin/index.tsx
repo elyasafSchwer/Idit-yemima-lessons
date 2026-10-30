@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { goBack } from '@/lib/navigation';
 import BackAction from '@/components/BackAction';
 import { useAuth } from '@/context/auth';
-import { colors } from '@/lib/theme';
+import { colors, appbarStyle } from '@/lib/theme';
 
 export default function AdminHome() {
   const { isAdmin } = useAuth();
@@ -48,7 +48,7 @@ export default function AdminHome() {
 
   return (
     <View style={styles.flex}>
-      <Appbar.Header elevated>
+      <Appbar.Header style={appbarStyle}>
         <BackAction onPress={() => goBack(router, '/(app)/lessons')} />
         <Appbar.Content title="ניהול" />
       </Appbar.Header>
@@ -62,7 +62,7 @@ export default function AdminHome() {
           </View>
 
           {stats.failed > 0 && (
-            <Card style={[styles.card, styles.failedCard]} onPress={() => router.push('/(app)/admin/lessons')}>
+            <Card mode="outlined" style={[styles.card, styles.failedCard]} onPress={() => router.push('/(app)/admin/lessons')}>
               <Card.Title
                 title={`${stats.failed} העלאות נכשלו`}
                 subtitle="לחצי כדי לנסות שוב"
@@ -72,14 +72,14 @@ export default function AdminHome() {
             </Card>
           )}
 
-          <Card style={styles.card} onPress={() => router.push('/(app)/admin/lessons/new')}>
+          <Card mode="outlined" style={styles.card} onPress={() => router.push('/(app)/admin/lessons/new')}>
             <Card.Title
               title="העלאת שיעור חדש" subtitle="הקלטות וואטסאפ, לפי סדר"
               left={(p) => <Avatar.Icon {...p} icon="plus" />}
             />
           </Card>
 
-          <Card style={styles.card} onPress={() => router.push('/(app)/admin/lessons')}>
+          <Card mode="outlined" style={styles.card} onPress={() => router.push('/(app)/admin/lessons')}>
             <Card.Title
               title="ניהול שיעורים"
               subtitle={stats.processing > 0
@@ -89,7 +89,7 @@ export default function AdminHome() {
             />
           </Card>
 
-          <Card style={styles.card} onPress={() => router.push('/(app)/admin/stats')}>
+          <Card mode="outlined" style={styles.card} onPress={() => router.push('/(app)/admin/stats')}>
             <Card.Title
               title="סטטיסטיקות האזנה"
               subtitle="מי האזינה, לכמה מהשיעור, ומתי"
@@ -97,7 +97,7 @@ export default function AdminHome() {
             />
           </Card>
 
-          <Card style={styles.card} onPress={() => router.push('/(app)/admin/users')}>
+          <Card mode="outlined" style={styles.card} onPress={() => router.push('/(app)/admin/users')}>
             <Card.Title
               left={(p) => <Avatar.Icon {...p} icon="account-key" />}
               title="הרשאות תלמידות"
@@ -117,7 +117,7 @@ export default function AdminHome() {
 
 function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <Card style={styles.stat}>
+    <Card mode="outlined" style={styles.stat}>
       <Card.Content>
         <Text variant="headlineMedium" style={styles.statValue}>{value}</Text>
         <Text variant="bodySmall" style={styles.statLabel}>{label}</Text>

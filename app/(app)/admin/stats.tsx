@@ -9,7 +9,7 @@ import BackAction from '@/components/BackAction';
 import Tabs from '@/components/Tabs';
 import { useAuth } from '@/context/auth';
 import { CATEGORY_ITEM, type Category } from '@/lib/categories';
-import { colors } from '@/lib/theme';
+import { colors, appbarStyle } from '@/lib/theme';
 
 type LessonStat = {
   lesson_id: string;
@@ -87,7 +87,7 @@ export default function Stats() {
 
   return (
     <View style={styles.flex}>
-      <Appbar.Header elevated>
+      <Appbar.Header style={appbarStyle}>
         <BackAction onPress={() => goBack(router, '/(app)/admin')} />
         <Appbar.Content title="סטטיסטיקות האזנה" />
         <Appbar.Action icon="refresh" onPress={onRefresh} />
@@ -136,7 +136,7 @@ export default function Stats() {
 
 function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <Card style={styles.stat}>
+    <Card mode="outlined" style={styles.stat}>
       <Card.Content>
         <Text variant="headlineSmall" style={styles.statValue}>{value}</Text>
         <Text variant="bodySmall" style={styles.statLabel}>{label}</Text>
@@ -150,7 +150,7 @@ function LessonCard({ stat, open, listeners, onPress }: {
 }) {
   const name = `${CATEGORY_ITEM[stat.category]}${stat.lesson_number ? ` ${stat.lesson_number}` : ''}`;
   return (
-    <Card style={styles.card} onPress={stat.listeners > 0 ? onPress : undefined}>
+    <Card mode="outlined" style={styles.card} onPress={stat.listeners > 0 ? onPress : undefined}>
       <Card.Title
         title={stat.title}
         titleNumberOfLines={2}
@@ -202,7 +202,7 @@ function StudentCard({ student }: { student: Student }) {
     ? Math.floor((Date.now() - new Date(student.last_listened_at).getTime()) / 86400_000)
     : null;
   return (
-    <Card style={styles.card}>
+    <Card mode="outlined" style={styles.card}>
       <Card.Title
         title={student.username}
         subtitle={days === null
