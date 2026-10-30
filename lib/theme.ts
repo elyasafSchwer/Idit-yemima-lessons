@@ -1,11 +1,10 @@
 import { StyleSheet } from 'react-native';
 import { MD3LightTheme, configureFonts } from 'react-native-paper';
 
-// Design direction: the app should feel like a well-made sefer, not a stock
-// Android app. Hebrew book typography (Frank Ruhl Libre) for anything that is
-// content -- titles, numbers, headings -- and a quiet sans (Assistant) for the
-// interface around it. Flat paper surfaces with hairline rules instead of
-// Material shadows and tinted bars; burgundy is kept for ink and accents.
+// Design direction: calm and grown-up rather than stock Android. One family,
+// Assistant, throughout, with weight doing the work of hierarchy. Flat paper
+// surfaces with hairline rules instead of Material shadows and tinted bars,
+// on a lightly textured paper background; burgundy is kept for ink and accents.
 // Every screen reads from `colors` and `fonts` below, so the scheme is still a
 // one-file change.
 
@@ -25,13 +24,13 @@ export const colors = {
 
 // Loaded in app/_layout.tsx with useFonts; the keys are the family names.
 export const fonts = {
-  serif: 'FrankRuhlLibre_500Medium',
-  serifBold: 'FrankRuhlLibre_700Bold',
+  heading: 'Assistant_600SemiBold',
+  headingBold: 'Assistant_700Bold',
   sans: 'Assistant_400Regular',
   sansMedium: 'Assistant_600SemiBold',
 };
 
-const serif = (fontSize: number, lineHeight: number, fontFamily = fonts.serif) =>
+const heading = (fontSize: number, lineHeight: number, fontFamily = fonts.heading) =>
   ({ fontFamily, fontSize, lineHeight, fontWeight: '400' as const, letterSpacing: 0 });
 const sans = (fontSize: number, lineHeight: number, fontFamily = fonts.sans) =>
   ({ fontFamily, fontSize, lineHeight, fontWeight: '400' as const, letterSpacing: 0 });
@@ -41,14 +40,14 @@ export const theme = {
   roundness: 3,
   fonts: configureFonts({
     config: {
-      displayLarge: serif(48, 56, fonts.serifBold),
-      displayMedium: serif(40, 48, fonts.serifBold),
-      displaySmall: serif(34, 42, fonts.serifBold),
-      headlineLarge: serif(30, 38, fonts.serifBold),
-      headlineMedium: serif(26, 34),
-      headlineSmall: serif(23, 30),
-      titleLarge: serif(21, 28),
-      titleMedium: serif(18, 25),
+      displayLarge: heading(48, 56, fonts.headingBold),
+      displayMedium: heading(40, 48, fonts.headingBold),
+      displaySmall: heading(34, 42, fonts.headingBold),
+      headlineLarge: heading(30, 38, fonts.headingBold),
+      headlineMedium: heading(26, 34),
+      headlineSmall: heading(23, 30),
+      titleLarge: heading(21, 28),
+      titleMedium: heading(18, 25),
       titleSmall: sans(14, 20, fonts.sansMedium),
       labelLarge: sans(15, 20, fonts.sansMedium),
       labelMedium: sans(13, 18, fonts.sansMedium),
@@ -90,9 +89,10 @@ export const theme = {
   },
 };
 
-// Top bars: page-coloured with a hairline underneath, not a raised tinted bar.
+// Top bars: transparent over the paper with a hairline underneath, not a
+// raised tinted bar.
 export const appbarStyle = {
-  backgroundColor: colors.background,
+  backgroundColor: 'transparent',
   borderBottomWidth: StyleSheet.hairlineWidth,
   borderBottomColor: colors.outline,
 };

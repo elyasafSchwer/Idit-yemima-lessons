@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
   // Dialogs render in a portal outside the web build's centred column, so on
   // a wide browser window they stretched edge to edge.
   dialog: Platform.OS === 'web' ? { width: '100%', maxWidth: 440, alignSelf: 'center' } : {},
-  flex: { flex: 1, backgroundColor: colors.background },
+  flex: { flex: 1 },
   search: { margin: 16, marginBottom: 8 },
   list: { padding: 16, paddingTop: 8, gap: 10 },
   card: { backgroundColor: colors.surface, borderRadius: 16 },

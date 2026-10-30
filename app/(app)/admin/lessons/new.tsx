@@ -259,7 +259,7 @@ export default function NewLesson() {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colors.background },
+  flex: { flex: 1 },
   wrap: { padding: 16, gap: 12, paddingBottom: 48 },
   switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   partCard: { backgroundColor: colors.surface, borderRadius: 12 },

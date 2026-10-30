@@ -248,7 +248,7 @@ function RecordingStatus({ s }: { s: RecordingState }) {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colors.background },
+  flex: { flex: 1 },
   list: { padding: 16, gap: 12, paddingBottom: 48 },
   header: { gap: 12, marginBottom: 4 },
   newButton: { borderRadius: 12 },

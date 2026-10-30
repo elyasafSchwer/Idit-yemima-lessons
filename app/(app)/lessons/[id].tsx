@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { Appbar, Text, ActivityIndicator } from 'react-native-paper';
 import { supabase } from '@/lib/supabase';
-import { formatHebrewDate, gematria } from '@/lib/hebrewDate';
+import { formatHebrewDate } from '@/lib/hebrewDate';
 import { goBack } from '@/lib/navigation';
 import BackAction from '@/components/BackAction';
 import { useAuth } from '@/context/auth';
@@ -75,10 +75,10 @@ export default function LessonDetail() {
       </Appbar.Header>
 
       <ScrollView contentContainerStyle={styles.wrap}>
-        {/* A title page, as in a sefer: the numeral, the title, the date. */}
+        {/* A title page: the number, the title, the date. */}
         <View style={styles.opening}>
           {!!lesson.lesson_number && (
-            <Text style={styles.numeral}>{gematria(lesson.lesson_number)}</Text>
+            <Text style={styles.numeral}>{lesson.lesson_number}</Text>
           )}
           <Text style={styles.title}>{lesson.title}</Text>
           <Text variant="bodySmall" style={styles.meta}>
@@ -105,13 +105,13 @@ export default function LessonDetail() {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colors.background },
+  flex: { flex: 1 },
   barTitle: { fontFamily: fonts.sansMedium, fontSize: 16, color: colors.textSecondary },
   wrap: { padding: 20, gap: 16, paddingBottom: 48 },
   opening: { alignItems: 'center', gap: 6, paddingTop: 12 },
-  numeral: { fontFamily: fonts.serifBold, fontSize: 44, lineHeight: 52, color: colors.primary },
+  numeral: { fontFamily: fonts.headingBold, fontSize: 44, lineHeight: 52, color: colors.primary },
   title: {
-    fontFamily: fonts.serif, fontSize: 28, lineHeight: 36, color: colors.text, textAlign: 'center',
+    fontFamily: fonts.heading, fontSize: 28, lineHeight: 36, color: colors.text, textAlign: 'center',
   },
   meta: { color: colors.textSecondary, textAlign: 'center' },
   free: { color: colors.primary },

@@ -102,7 +102,7 @@ export default function SignUp() {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colors.background },
+  flex: { flex: 1 },
   wrap: { flexGrow: 1, justifyContent: 'center', padding: 24 },
   title: { textAlign: 'center', color: colors.primaryDark },
   subtitle: { textAlign: 'center', color: colors.textSecondary, marginTop: 6, marginBottom: 28 },

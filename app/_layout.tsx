@@ -1,15 +1,16 @@
 import 'react-native-gesture-handler';
 import { useEffect } from 'react';
-import { I18nManager, Platform, StyleSheet, View } from 'react-native';
-import { Stack, SplashScreen, useRouter, useRootNavigationState } from 'expo-router';
+import { I18nManager, ImageBackground, Platform, StyleSheet, View } from 'react-native';
+import {
+  Stack, SplashScreen, useRouter, useRootNavigationState, ThemeProvider, DefaultTheme,
+} from 'expo-router';
 import * as Updates from 'expo-updates';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { PaperProvider, ActivityIndicator } from 'react-native-paper';
 import { setAudioModeAsync } from 'expo-audio';
 import { AuthProvider, useAuth } from '@/context/auth';
 import { useFonts } from 'expo-font';
-import { FrankRuhlLibre_500Medium, FrankRuhlLibre_700Bold } from '@expo-google-fonts/frank-ruhl-libre';
-import { Assistant_400Regular, Assistant_600SemiBold } from '@expo-google-fonts/assistant';
+import { Assistant_400Regular, Assistant_600SemiBold, Assistant_700Bold } from '@expo-google-fonts/assistant';
 import { theme, colors } from '@/lib/theme';
 
 SplashScreen.preventAutoHideAsync();
@@ -67,9 +68,13 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <PaperProvider theme={theme}>
-        <AuthProvider>
-          <RootNavigator />
-        </AuthProvider>
+        {/* The navigator paints every screen with its theme background (light
+            grey by default); transparent lets the paper texture show. */}
+        <ThemeProvider value={NAV_THEME}>
+          <AuthProvider>
+            <RootNavigator />
+          </AuthProvider>
+        </ThemeProvider>
       </PaperProvider>
     </GestureHandlerRootView>
   );
@@ -80,7 +85,7 @@ function RootNavigator() {
   // The theme's type scale names these families; rendering before they load
   // would flash the system font and then reflow every screen.
   const [fontsLoaded, fontError] = useFonts({
-    FrankRuhlLibre_500Medium, FrankRuhlLibre_700Bold, Assistant_400Regular, Assistant_600SemiBold,
+    Assistant_400Regular, Assistant_600SemiBold, Assistant_700Bold,
   });
   const ready = !isLoading && !isProfileLoading && (fontsLoaded || !!fontError);
   const router = useRouter();
@@ -112,11 +117,17 @@ function RootNavigator() {
     // On a wide browser window every screen would stretch edge to edge, so the
     // web build keeps one phone-like column in the middle. Native is unaffected.
     <View style={styles.page}>
-      <View style={styles.column}>
+      {/* Warm paper with a fine grey grain, tiled. Screens are transparent and
+          cards stay solid on top of it. */}
+      <ImageBackground
+        source={require('../assets/paper.png')}
+        resizeMode="repeat"
+        style={styles.column}
+      >
         {/* BOTH groups must be guarded. Guarding only (auth) leaves (app) mounted
             for everyone, so a signed-out visitor lands on the catalogue and sits
             on a spinner while RLS refuses the query. */}
-        <Stack screenOptions={{ headerShown: false }}>
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }}>
           <Stack.Protected guard={!session}>
             <Stack.Screen name="(auth)" />
           </Stack.Protected>
@@ -124,12 +135,17 @@ function RootNavigator() {
             <Stack.Screen name="(app)" />
           </Stack.Protected>
         </Stack>
-      </View>
+      </ImageBackground>
     </View>
   );
 }
 
 const WEB_COLUMN = 600;
+
+const NAV_THEME = {
+  ...DefaultTheme,
+  colors: { ...DefaultTheme.colors, background: 'transparent', card: 'transparent' },
+};
 
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: Platform.OS === 'web' ? '#EADCCD' : colors.background },
@@ -138,5 +154,5 @@ const styles = StyleSheet.create({
       flex: 1, width: '100%', maxWidth: WEB_COLUMN, alignSelf: 'center',
       backgroundColor: colors.background, overflow: 'hidden',
     }
-    : { flex: 1 },
+    : { flex: 1, backgroundColor: colors.background },
 });

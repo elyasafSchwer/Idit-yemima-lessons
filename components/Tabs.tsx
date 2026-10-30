@@ -35,10 +35,14 @@ export default function Tabs({ value, onValueChange, buttons, style }: Props) {
 
 const styles = StyleSheet.create({
   row: {
-    flexDirection: 'row', gap: 24,
+    flexDirection: 'row',
     borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.outline,
   },
-  tab: { paddingVertical: 10, borderBottomWidth: 2, borderBottomColor: 'transparent', marginBottom: -1 },
+  // Equal-width tabs, so the underline is the same length whatever the label.
+  tab: {
+    flex: 1, alignItems: 'center', paddingVertical: 10,
+    borderBottomWidth: 2, borderBottomColor: 'transparent', marginBottom: -1,
+  },
   selected: { borderBottomColor: colors.primary },
   label: { fontFamily: fonts.sansMedium, fontSize: 15, color: colors.textSecondary },
   labelSelected: { color: colors.primary },

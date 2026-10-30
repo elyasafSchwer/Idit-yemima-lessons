@@ -7,7 +7,7 @@ import {
 import { useAuth } from '@/context/auth';
 import { supabase } from '@/lib/supabase';
 import Tabs from '@/components/Tabs';
-import { formatHebrewDate, gematria } from '@/lib/hebrewDate';
+import { formatHebrewDate } from '@/lib/hebrewDate';
 import HeaderTitle from '@/components/HeaderTitle';
 import { CATEGORIES, CATEGORY_LABEL, type Category } from '@/lib/categories';
 import { APP_NAME, colors, fonts, WHATSAPP_URL, appbarStyle } from '@/lib/theme';
@@ -129,9 +129,8 @@ export default function Lessons() {
   );
 }
 
-// One lesson in the list. The number is set as a Hebrew numeral in the book
-// serif, like a chapter marker in a sefer: it is the one decorative element,
-// so everything else in the row stays plain.
+// One lesson in the list. The number leads the row, large and in burgundy:
+// it is the one decorative element, so everything else in the row stays plain.
 function LessonRow({ lesson, locked, onPress }: { lesson: Lesson; locked: boolean; onPress: () => void }) {
   return (
     <Pressable
@@ -141,7 +140,7 @@ function LessonRow({ lesson, locked, onPress }: { lesson: Lesson; locked: boolea
     >
       <View style={styles.numeral}>
         {lesson.lesson_number
-          ? <Text style={styles.numeralText}>{gematria(lesson.lesson_number)}</Text>
+          ? <Text style={styles.numeralText}>{lesson.lesson_number}</Text>
           : null}
       </View>
       <View style={styles.rowBody}>
@@ -166,7 +165,7 @@ function LessonRow({ lesson, locked, onPress }: { lesson: Lesson; locked: boolea
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colors.background },
+  flex: { flex: 1 },
   accessBar: {
     paddingVertical: 8, paddingHorizontal: 20,
     borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.outline,
@@ -186,9 +185,9 @@ const styles = StyleSheet.create({
     width: 48, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center',
     borderEndWidth: StyleSheet.hairlineWidth, borderEndColor: colors.outline, paddingEnd: 12,
   },
-  numeralText: { fontFamily: fonts.serifBold, fontSize: 26, lineHeight: 32, color: colors.primary },
+  numeralText: { fontFamily: fonts.headingBold, fontSize: 26, lineHeight: 32, color: colors.primary },
   rowBody: { flex: 1, gap: 4 },
-  rowTitle: { fontFamily: fonts.serif, fontSize: 19, lineHeight: 26, color: colors.text },
+  rowTitle: { fontFamily: fonts.heading, fontSize: 19, lineHeight: 26, color: colors.text },
   rowDescription: { color: colors.textSecondary },
   rowMeta: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 2 },
   rowDate: { color: colors.textSecondary },

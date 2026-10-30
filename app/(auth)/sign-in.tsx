@@ -93,7 +93,7 @@ export default function SignIn() {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colors.background },
+  flex: { flex: 1 },
   wrap: { flexGrow: 1, justifyContent: 'center', padding: 24 },
   logo: { width: 72, height: 72, borderRadius: 18, alignSelf: 'center', marginBottom: 16 },
   title: { textAlign: 'center', color: colors.primaryDark },

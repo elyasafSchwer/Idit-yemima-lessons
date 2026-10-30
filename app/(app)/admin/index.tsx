@@ -127,7 +127,7 @@ function Stat({ label, value }: { label: string; value: number }) {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colors.background },
+  flex: { flex: 1 },
   wrap: { padding: 16, gap: 12 },
   row: { flexDirection: 'row', gap: 10 },
   stat: { flex: 1, backgroundColor: colors.surface, borderRadius: 14 },
