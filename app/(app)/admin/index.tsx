@@ -89,6 +89,14 @@ export default function AdminHome() {
             />
           </Card>
 
+          <Card style={styles.card} onPress={() => router.push('/(app)/admin/stats')}>
+            <Card.Title
+              title="סטטיסטיקות האזנה"
+              subtitle="מי האזינה, לכמה מהשיעור, ומתי"
+              left={(p) => <Avatar.Icon {...p} icon="chart-bar" />}
+            />
+          </Card>
+
           <Card style={styles.card} onPress={() => router.push('/(app)/admin/users')}>
             <Card.Title
               left={(p) => <Avatar.Icon {...p} icon="account-key" />}
