@@ -2,9 +2,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { useFocusEffect, useRouter, Redirect } from 'expo-router';
 import {
-  Appbar, Card, Text, Button, ActivityIndicator, Snackbar, Divider, SegmentedButtons,
+  Appbar, Card, Text, Button, ActivityIndicator, Snackbar, Divider,
 } from 'react-native-paper';
 import { supabase } from '@/lib/supabase';
+import Tabs from '@/components/Tabs';
 import { formatHebrewDate } from '@/lib/hebrewDate';
 import Toggle from '@/components/Toggle';
 import { goBack } from '@/lib/navigation';
@@ -124,7 +125,7 @@ export default function ManageLessons() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           ListHeaderComponent={
             <View style={styles.header}>
-              <SegmentedButtons
+              <Tabs
                 value={category}
                 onValueChange={(v) => setCategory(v as Category)}
                 buttons={CATEGORIES.map((c) => ({ value: c, label: CATEGORY_LABEL[c] }))}

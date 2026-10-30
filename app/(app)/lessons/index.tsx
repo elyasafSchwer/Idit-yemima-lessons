@@ -2,10 +2,11 @@ import { useCallback, useState } from 'react';
 import { FlatList, Linking, RefreshControl, StyleSheet, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import {
-  Text, Card, Chip, Button, Banner, ActivityIndicator, Appbar, SegmentedButtons,
+  Text, Card, Chip, Button, Surface, Banner, ActivityIndicator, Appbar,
 } from 'react-native-paper';
 import { useAuth } from '@/context/auth';
 import { supabase } from '@/lib/supabase';
+import Tabs from '@/components/Tabs';
 import { formatHebrewDate } from '@/lib/hebrewDate';
 import HeaderTitle from '@/components/HeaderTitle';
 import { CATEGORIES, CATEGORY_LABEL, type Category } from '@/lib/categories';
@@ -23,7 +24,7 @@ type Lesson = {
 };
 
 export default function Lessons() {
-  const { username, isAdmin, hasAccess, signOut, refreshAccess } = useAuth();
+  const { username, isAdmin, hasAccess, accessExpiresAt, signOut, refreshAccess } = useAuth();
   const router = useRouter();
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,6 +50,8 @@ export default function Lessons() {
     setRefreshing(false);
   };
 
+  // The end date Idit chose. Shown as a fact, never as a period ("a year").
+  const expiry = accessExpiresAt ? formatHebrewDate(accessExpiresAt) : null;
 
   return (
     <View style={styles.flex}>
@@ -75,7 +78,15 @@ export default function Lessons() {
         </Banner>
       )}
 
-      <SegmentedButtons
+      {hasAccess && expiry && !isAdmin && (
+        <Surface style={styles.accessBar} elevation={0}>
+          <Text variant="bodySmall" style={styles.accessText}>
+            הגישה שלך בתוקף עד {expiry}
+          </Text>
+        </Surface>
+      )}
+
+      <Tabs
         style={styles.tabs}
         value={category}
         onValueChange={(v) => setCategory(v as Category)}
@@ -141,6 +152,8 @@ export default function Lessons() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.background },
+  accessBar: { paddingVertical: 6, paddingHorizontal: 16, backgroundColor: colors.primaryDark },
+  accessText: { color: '#fff', textAlign: 'center' },
   tabs: { marginHorizontal: 16, marginTop: 12 },
   list: { padding: 16, gap: 12, paddingBottom: 96 },
   card: { backgroundColor: colors.surface, borderRadius: 16 },

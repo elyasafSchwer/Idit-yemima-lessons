@@ -1,4 +1,4 @@
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { colors } from '@/lib/theme';
 
@@ -22,6 +22,8 @@ export default function HeaderTitle({ title, subtitle }: { title: string; subtit
 }
 
 const styles = StyleSheet.create({
-  wrap: { alignSelf: 'stretch' },
+  // Paper gives Appbar.Content a left margin only; on RTL web that left the
+  // title touching the right edge when nothing sits beside it.
+  wrap: { alignSelf: 'stretch', paddingRight: Platform.OS === 'web' ? 12 : 0 },
   subtitle: { color: colors.textSecondary },
 });

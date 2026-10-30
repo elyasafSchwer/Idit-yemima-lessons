@@ -3,6 +3,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 're
 import { Link } from 'expo-router';
 import { Text, TextInput, Button, Surface, HelperText } from 'react-native-paper';
 import { useAuth } from '@/context/auth';
+import Field from '@/components/Field';
 import { colors } from '@/lib/theme';
 
 export default function SignIn() {
@@ -41,7 +42,7 @@ export default function SignIn() {
         </Text>
 
         <Surface style={styles.card} elevation={2}>
-          <TextInput
+          <Field
             mode="outlined"
             label="שם משתמש"
             value={username}
@@ -50,7 +51,7 @@ export default function SignIn() {
             autoCorrect={false}
             style={styles.input}
           />
-          <TextInput
+          <Field
             mode="outlined"
             label="סיסמה"
             value={password}

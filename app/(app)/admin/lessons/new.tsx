@@ -3,10 +3,12 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 're
 import { useRouter, Redirect, useLocalSearchParams } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import {
-  Appbar, TextInput, Button, Card, Text, IconButton,
-  HelperText, ProgressBar, Divider, SegmentedButtons,
+  Appbar, Button, Card, Text, IconButton,
+  HelperText, ProgressBar, Divider,
 } from 'react-native-paper';
 import { supabase } from '@/lib/supabase';
+import Tabs from '@/components/Tabs';
+import Field from '@/components/Field';
 import { localISODate } from '@/lib/hebrewDate';
 import HebrewDatePicker from '@/components/HebrewDatePicker';
 import Toggle from '@/components/Toggle';
@@ -178,16 +180,16 @@ export default function NewLesson() {
       <ScrollView contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
         {!existingId && (
           <>
-            <SegmentedButtons
+            <Tabs
               value={category}
               onValueChange={(v) => setCategory(v as Category)}
               buttons={CATEGORIES.map((c) => ({ value: c, label: CATEGORY_ITEM[c] }))}
             />
-            <TextInput
+            <Field
               mode="outlined" label="כותרת" value={title} onChangeText={setTitle}
             />
 
-            <TextInput
+            <Field
               mode="outlined" label="תיאור קצר" value={description} onChangeText={setDescription}
               multiline numberOfLines={3}
             />

@@ -1,0 +1,13 @@
+<!-- App icon mark: an open book with sound waves rising from it (audio lessons).
+     Cream on the app's burgundy. Drawn on a 1024 canvas; the mark stays inside
+     the central 600px so Android's adaptive-icon masks never clip it. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <g fill="none" stroke="#FBF4EC" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M512 700 C 450 655, 360 640, 262 650 L 262 450 C 360 440, 450 455, 512 500 Z" stroke-width="34"/>
+    <path d="M512 700 C 574 655, 664 640, 762 650 L 762 450 C 664 440, 574 455, 512 500 Z" stroke-width="34"/>
+    <line x1="512" y1="500" x2="512" y2="700" stroke-width="34"/>
+    <path d="M452 388 A 85 85 0 0 1 572 388" stroke-width="30"/>
+    <path d="M407 343 A 148 148 0 0 1 617 343" stroke-width="30" opacity="0.75"/>
+    <path d="M362 298 A 212 212 0 0 1 662 298" stroke-width="30" opacity="0.5"/>
+  </g>
+</svg>

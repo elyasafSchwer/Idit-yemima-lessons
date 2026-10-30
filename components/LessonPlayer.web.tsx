@@ -9,7 +9,8 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Text, IconButton, Button, Surface, ActivityIndicator, SegmentedButtons } from 'react-native-paper';
+import { Text, IconButton, Button, Surface, ActivityIndicator } from 'react-native-paper';
+import Tabs from '@/components/Tabs';
 import Hls from 'hls.js';
 import {
   startPlaybackSession, loadProgress, saveProgress, formatTime, NoAccessError,
@@ -180,7 +181,7 @@ export default function LessonPlayer({ trackId, title }: { trackId: string; titl
             <IconButton icon="fast-forward-30" size={30} onPress={() => seek(position + 30)} />
           </View>
 
-          <SegmentedButtons
+          <Tabs
             value={rate}
             onValueChange={changeRate}
             density="small"
