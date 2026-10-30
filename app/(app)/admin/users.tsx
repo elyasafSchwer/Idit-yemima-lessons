@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, View, Platform } from 'react-native';
 import { useRouter, useFocusEffect, Redirect } from 'expo-router';
 import {
   Appbar, Searchbar, Card, Text, Button, Chip, Portal, Dialog, Menu,
@@ -254,7 +254,7 @@ export default function AdminUsers() {
       )}
 
       <Portal>
-        <Dialog visible={!!grantFor} onDismiss={() => setGrantFor(null)}>
+        <Dialog style={styles.dialog} visible={!!grantFor} onDismiss={() => setGrantFor(null)}>
           <Dialog.Title>{grantFor?.expiresAt ? 'שינוי תאריך הגישה' : 'פתיחת גישה'} — {grantFor?.username}</Dialog.Title>
           <Dialog.Content>
             {!!grantUntil && (
@@ -267,7 +267,7 @@ export default function AdminUsers() {
           </Dialog.Actions>
         </Dialog>
 
-        <Dialog visible={!!deleteFor} onDismiss={() => setDeleteFor(null)}>
+        <Dialog style={styles.dialog} visible={!!deleteFor} onDismiss={() => setDeleteFor(null)}>
           <Dialog.Title>מחיקת {deleteFor?.username}</Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium">
@@ -280,7 +280,7 @@ export default function AdminUsers() {
             <Button mode="contained" buttonColor={colors.error} onPress={submitDelete}>מחיקה</Button>
           </Dialog.Actions>
         </Dialog>
-        <Dialog visible={!!roleFor} onDismiss={() => setRoleFor(null)}>
+        <Dialog style={styles.dialog} visible={!!roleFor} onDismiss={() => setRoleFor(null)}>
           <Dialog.Title>
             {roleFor?.role === 'admin' ? 'הפיכה למנהלת' : 'ביטול הרשאות ניהול'} — {roleFor?.row.username}
           </Dialog.Title>
@@ -306,6 +306,9 @@ export default function AdminUsers() {
 }
 
 const styles = StyleSheet.create({
+  // Dialogs render in a portal outside the web build's centred column, so on
+  // a wide browser window they stretched edge to edge.
+  dialog: Platform.OS === 'web' ? { width: '100%', maxWidth: 440, alignSelf: 'center' } : {},
   flex: { flex: 1, backgroundColor: colors.background },
   search: { margin: 16, marginBottom: 8 },
   list: { padding: 16, paddingTop: 8, gap: 10 },
