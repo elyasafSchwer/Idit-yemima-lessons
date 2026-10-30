@@ -179,6 +179,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface, borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth, borderColor: colors.outline,
     paddingVertical: 16, paddingHorizontal: 16,
+    // One height for every row, with or without a description, so lessons and
+    // summaries line up the same when switching tabs.
+    minHeight: 112,
   },
   rowPressed: { backgroundColor: colors.primarySoft },
   numeral: {
