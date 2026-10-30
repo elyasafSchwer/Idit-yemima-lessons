@@ -32,7 +32,13 @@
       "expo-router",
       "expo-status-bar",
       "expo-secure-store",
-      "expo-audio",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ],
       "./plugins/withPodsDeploymentTarget",
       [
         "expo-build-properties",
