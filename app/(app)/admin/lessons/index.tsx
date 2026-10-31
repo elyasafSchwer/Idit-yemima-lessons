@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { useFocusEffect, useRouter, Redirect } from 'expo-router';
 import {
-  Appbar, Card, Text, Button, ActivityIndicator, Snackbar, Divider,
+  Appbar, Card, Text, Button, ActivityIndicator, Snackbar, Divider, Dialog, Portal,
 } from 'react-native-paper';
 import { supabase } from '@/lib/supabase';
 import Tabs from '@/components/Tabs';
@@ -57,6 +57,7 @@ export default function ManageLessons() {
   const [refreshing, setRefreshing] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Lesson | null>(null);
 
   const load = useCallback(async () => {
     const { data } = await supabase
@@ -106,6 +107,17 @@ export default function ManageLessons() {
 
   const upload = (lesson: Lesson) =>
     router.push({ pathname: '/(app)/admin/lessons/new', params: { lessonId: lesson.id } });
+
+  const deleteLesson = async () => {
+    if (!deleteTarget) return;
+    const lesson = deleteTarget;
+    setDeleteTarget(null);
+    setBusy(lesson.id);
+    const { error } = await supabase.from('lessons').delete().eq('id', lesson.id);
+    setBusy(null);
+    setToast(error ? 'המחיקה נכשלה' : `ה${CATEGORY_ITEM[lesson.category]} נמחק`);
+    load();
+  };
 
   const item = CATEGORY_ITEM[category];
 
@@ -215,6 +227,14 @@ export default function ManageLessons() {
                       )}
                     />
                   </View>
+                  <View style={[styles.row, styles.deleteRow]}>
+                    <Button
+                      mode="text" icon="delete-outline" compact textColor={colors.error}
+                      disabled={disabled} onPress={() => setDeleteTarget(lesson)}
+                    >
+                      מחיקה
+                    </Button>
+                  </View>
                 </Card.Content>
               </Card>
             );
@@ -225,6 +245,22 @@ export default function ManageLessons() {
       <Snackbar visible={!!toast} onDismiss={() => setToast(null)} duration={3000}>
         {toast}
       </Snackbar>
+
+      <Portal>
+        <Dialog visible={!!deleteTarget} onDismiss={() => setDeleteTarget(null)}>
+          <Dialog.Title>מחיקת {deleteTarget ? CATEGORY_ITEM[deleteTarget.category] : ''}</Dialog.Title>
+          <Dialog.Content>
+            <Text>
+              {deleteTarget?.title ? `"${deleteTarget.title}" ` : ''}
+              יימחק לצמיתות, כולל ההקלטה. פעולה זו אינה הפיכה.
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setDeleteTarget(null)}>ביטול</Button>
+            <Button textColor={colors.error} onPress={deleteLesson}>מחיקה</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </View>
   );
 }
@@ -263,6 +299,7 @@ const styles = StyleSheet.create({
   ok: { color: colors.primary },
   muted: { color: colors.textSecondary },
   failed: { color: colors.error },
-  empty: { textAlign: 'center', marginTop: 48, color: colors.textSecondary },
+  deleteRow: { justifyContent: 'flex-start', minHeight: 0, marginTop: 4 },
+
   loader: { marginTop: 64 },
 });
