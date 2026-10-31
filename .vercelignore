@@ -1,0 +1,6 @@
+.vercel
+dist/*.aab
+dist/play-store/
+credentials/
+android/
+ios/
