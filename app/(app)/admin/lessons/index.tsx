@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
-import { useFocusEffect, useRouter, Redirect } from 'expo-router';
+import { useFocusEffect, useRouter, Redirect, useLocalSearchParams } from 'expo-router';
 import {
   Appbar, Card, Text, Button, ActivityIndicator, Snackbar, Divider, Dialog, Portal,
 } from 'react-native-paper';
@@ -52,7 +52,10 @@ export default function ManageLessons() {
   const { isAdmin } = useAuth();
   const router = useRouter();
   const [lessons, setLessons] = useState<Lesson[]>([]);
-  const [category, setCategory] = useState<Category>('lesson');
+  // After uploading a summary, the upload screen sends Idit back here on the
+  // summaries tab so she can watch it process.
+  const params = useLocalSearchParams<{ category?: Category }>();
+  const [category, setCategory] = useState<Category>(params.category === 'summary' ? 'summary' : 'lesson');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
@@ -300,6 +303,7 @@ const styles = StyleSheet.create({
   muted: { color: colors.textSecondary },
   failed: { color: colors.error },
   deleteRow: { justifyContent: 'flex-start', minHeight: 0, marginTop: 4 },
+  empty: { textAlign: 'center', marginTop: 48, color: colors.textSecondary },
 
   loader: { marginTop: 64 },
 });

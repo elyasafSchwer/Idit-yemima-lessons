@@ -7,15 +7,15 @@
  * is a plain <audio> element, which cannot play HLS outside Safari.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Linking, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
-import { Text, IconButton, Button, Surface, ActivityIndicator } from 'react-native-paper';
+import { Text, IconButton, Surface, ActivityIndicator } from 'react-native-paper';
 import RatePicker from '@/components/RatePicker';
 import Slider from '@react-native-community/slider';
 import {
   startPlaybackSession, loadProgress, saveProgress, formatTime, NoAccessError,
 } from '@/lib/playback';
-import { APP_NAME, colors, WHATSAPP_URL } from '@/lib/theme';
+import { APP_NAME, colors } from '@/lib/theme';
 
 const RATES = ['1', '1.25', '1.5'];
 const PROGRESS_SAVE_INTERVAL_MS = 10_000;
@@ -112,13 +112,9 @@ export default function LessonPlayer({ trackId, title }: { trackId: string; titl
   if (error === 'no_access') {
     return (
       <Surface style={styles.card} elevation={0}>
-        <Text variant="titleMedium" style={styles.locked}>השיעור הזה נעול</Text>
-        <Text variant="bodyMedium" style={styles.lockedBody}>
-          לפתיחת גישה אפשר לפנות לעידית בוואטסאפ.
-        </Text>
-        <Button mode="contained" icon="whatsapp" onPress={() => Linking.openURL(WHATSAPP_URL)}>
-          פנייה לעידית
-        </Button>
+        {/* Reached only from a shared link: the store build hides what the
+            user cannot open, and must not point to buying access elsewhere. */}
+        <Text variant="bodyMedium" style={styles.lockedBody}>השיעור הזה לא זמין בחשבון שלך.</Text>
       </Surface>
     );
   }
@@ -191,7 +187,6 @@ const styles = StyleSheet.create({
   slider: { width: '100%', height: 36 },
   times: { flexDirection: 'row', justifyContent: 'space-between', marginTop: -6 },
   controls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
-  locked: { color: colors.primary },
   lockedBody: { color: colors.textSecondary, marginBottom: 6 },
   loadingText: { textAlign: 'center', color: colors.textSecondary },
   buffering: { textAlign: 'center', color: colors.textSecondary },

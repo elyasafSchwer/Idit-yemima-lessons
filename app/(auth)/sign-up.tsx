@@ -1,9 +1,12 @@
-import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { useRef, useState } from 'react';
+import {
+  KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, type TextInput as NativeTextInput,
+} from 'react-native';
 import { Link } from 'expo-router';
 import { Text, TextInput, Button, Surface, HelperText } from 'react-native-paper';
 import { useAuth } from '@/context/auth';
 import Field from '@/components/Field';
+import { SHOW_LOCKED } from '@/lib/access';
 import { isValidUsername, MIN_PASSWORD_LENGTH } from '@/lib/username';
 import { colors } from '@/lib/theme';
 
@@ -12,6 +15,7 @@ export default function SignUp() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const passwordRef = useRef<NativeTextInput>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -45,7 +49,9 @@ export default function SignUp() {
       <ScrollView contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
         <Text variant="displaySmall" style={styles.title}>הרשמה</Text>
         <Text variant="bodyMedium" style={styles.subtitle}>
-          ההרשמה חינם. אחריה אפשר לשמוע את השיעור הפתוח, ולבקש גישה לשאר.
+          {SHOW_LOCKED
+            ? 'ההרשמה חינם. אחריה אפשר לשמוע את השיעור הפתוח, ולבקש גישה לשאר.'
+            : 'בוחרים שם משתמש וסיסמה, וזהו.'}
         </Text>
 
         <Surface style={styles.card} elevation={0}>
@@ -56,15 +62,20 @@ export default function SignUp() {
             onChangeText={setUsername}
             autoCapitalize="none"
             autoCorrect={false}
+            returnKeyType="next"
+            onSubmitEditing={() => passwordRef.current?.focus()}
             style={styles.input}
           />
           <Field
+            ref={passwordRef}
             mode="outlined"
             label="סיסמה"
             value={password}
             onChangeText={setPassword}
             secureTextEntry={!showPassword}
             autoCapitalize="none"
+            returnKeyType="go"
+            onSubmitEditing={submit}
             right={
               <TextInput.Icon
                 icon={showPassword ? 'eye-off' : 'eye'}

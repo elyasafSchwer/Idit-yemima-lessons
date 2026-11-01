@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter, Redirect, useLocalSearchParams } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import {
   Appbar, Button, Card, Text, IconButton,
-  HelperText, ProgressBar, Divider,
+  HelperText, Divider,
 } from 'react-native-paper';
 import { supabase } from '@/lib/supabase';
 import Tabs from '@/components/Tabs';
@@ -12,6 +12,7 @@ import Field from '@/components/Field';
 import { localISODate } from '@/lib/hebrewDate';
 import HebrewDatePicker from '@/components/HebrewDatePicker';
 import Toggle from '@/components/Toggle';
+import Bar from '@/components/Bar';
 import { goBack } from '@/lib/navigation';
 import BackAction from '@/components/BackAction';
 import HeaderTitle from '@/components/HeaderTitle';
@@ -41,6 +42,7 @@ export default function NewLesson() {
   const [parts, setParts] = useState<Part[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<number | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     if (!existingId) return;
@@ -81,6 +83,8 @@ export default function NewLesson() {
 
     setError(null);
     setProgress(0);
+    // With many parts the button and progress sit below the fold.
+    scrollRef.current?.scrollToEnd({ animated: true });
     try {
       let lesson: { id: string };
       if (existingId) {
@@ -151,7 +155,7 @@ export default function NewLesson() {
       // Coming from the manage screen, go back to it rather than stacking a
       // second copy on top.
       if (existingId) goBack(router, '/(app)/admin/lessons');
-      else router.replace('/(app)/admin/lessons');
+      else router.replace({ pathname: '/(app)/admin/lessons', params: { category } });
     } catch (e) {
       setProgress(null);
       setError(e instanceof Error ? e.message : 'ההעלאה נכשלה');
@@ -177,7 +181,7 @@ export default function NewLesson() {
         />
       </Appbar.Header>
 
-      <ScrollView contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
         {!existingId && (
           <>
             <Tabs
@@ -234,7 +238,7 @@ export default function NewLesson() {
         {error && <HelperText type="error" visible>{error}</HelperText>}
         {progress !== null && (
           <>
-            <ProgressBar progress={progress} />
+            <Bar percent={progress * 100} height={6} />
             <Text variant="bodySmall" style={styles.progressText}>
               מעלה… {Math.round(progress * 100)}%
             </Text>

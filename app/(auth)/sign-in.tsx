@@ -1,5 +1,7 @@
-import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, Image } from 'react-native';
+import { useRef, useState } from 'react';
+import {
+  KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, Image, type TextInput as NativeTextInput,
+} from 'react-native';
 import { Link } from 'expo-router';
 import { Text, TextInput, Button, Surface, HelperText } from 'react-native-paper';
 import { useAuth } from '@/context/auth';
@@ -11,6 +13,7 @@ export default function SignIn() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const passwordRef = useRef<NativeTextInput>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -50,15 +53,20 @@ export default function SignIn() {
             onChangeText={setUsername}
             autoCapitalize="none"
             autoCorrect={false}
+            returnKeyType="next"
+            onSubmitEditing={() => passwordRef.current?.focus()}
             style={styles.input}
           />
           <Field
+            ref={passwordRef}
             mode="outlined"
             label="סיסמה"
             value={password}
             onChangeText={setPassword}
             secureTextEntry={!showPassword}
             autoCapitalize="none"
+            returnKeyType="go"
+            onSubmitEditing={submit}
             right={
               <TextInput.Icon
                 icon={showPassword ? 'eye-off' : 'eye'}

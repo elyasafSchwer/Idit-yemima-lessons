@@ -8,6 +8,8 @@ import {
 import { supabase } from '@/lib/supabase';
 import { formatHebrewDate, localISODate } from '@/lib/hebrewDate';
 import HebrewDatePicker from '@/components/HebrewDatePicker';
+import Toggle from '@/components/Toggle';
+import { isUnlimited, UNLIMITED_EXPIRY } from '@/lib/access';
 import { goBack } from '@/lib/navigation';
 import BackAction from '@/components/BackAction';
 import HeaderTitle from '@/components/HeaderTitle';
@@ -36,6 +38,7 @@ export default function AdminUsers() {
   const [deleteFor, setDeleteFor] = useState<Row | null>(null);
   const [grantFor, setGrantFor] = useState<Row | null>(null);
   const [grantUntil, setGrantUntil] = useState('');
+  const [grantUnlimited, setGrantUnlimited] = useState(false);
   const [roleFor, setRoleFor] = useState<{ row: Row; role: Row['role'] } | null>(null);
 
   const load = useCallback(async () => {
@@ -76,7 +79,9 @@ export default function AdminUsers() {
   const openGrant = (row: Row) => {
     const def = new Date();
     def.setFullYear(def.getFullYear() + 1);
-    setGrantUntil(row.expiresAt ? localISODate(new Date(row.expiresAt)) : localISODate(def));
+    const unlimited = !!row.expiresAt && isUnlimited(row.expiresAt);
+    setGrantUnlimited(unlimited);
+    setGrantUntil(row.expiresAt && !unlimited ? localISODate(new Date(row.expiresAt)) : localISODate(def));
     setGrantFor(row);
   };
 
@@ -84,7 +89,7 @@ export default function AdminUsers() {
     if (!grantFor) return;
     const row = grantFor;
     // Access lasts through the chosen day, in Israel's local time.
-    const end = new Date(`${grantUntil}T23:59:59`);
+    const end = grantUnlimited ? new Date(UNLIMITED_EXPIRY) : new Date(`${grantUntil}T23:59:59`);
     if (end.getTime() <= Date.now()) { setToast('צריך לבחור תאריך עתידי'); return; }
     setGrantFor(null);
     setBusyId(row.id);
@@ -102,7 +107,9 @@ export default function AdminUsers() {
         method: 'manual',
       });
     setBusyId(null);
-    setToast(error ? 'הפעולה נכשלה' : `${row.username} — גישה עד ${formatHebrewDate(grantUntil)}`);
+    setToast(error ? 'הפעולה נכשלה'
+      : grantUnlimited ? `${row.username} — גישה ללא הגבלת זמן`
+      : `${row.username} — גישה עד ${formatHebrewDate(grantUntil)}`);
     if (!error) load();
   };
 
@@ -170,7 +177,8 @@ export default function AdminUsers() {
           ListEmptyComponent={<Text style={styles.empty}>לא נמצאו משתמשות.</Text>}
           renderItem={({ item }) => {
             const expires = item.expiresAt ? new Date(item.expiresAt) : null;
-            const soon = expires ? expires.getTime() - Date.now() < 30 * DAY : false;
+            const unlimited = !!expires && isUnlimited(expires);
+            const soon = expires && !unlimited ? expires.getTime() - Date.now() < 30 * DAY : false;
             const busy = busyId === item.id;
             return (
               <Card mode="outlined" style={styles.card}>
@@ -178,6 +186,7 @@ export default function AdminUsers() {
                   title={item.username}
                   subtitle={
                     item.role === 'admin' ? 'מנהלת'
+                      : unlimited ? 'גישה ללא הגבלת זמן'
                       : expires ? `גישה עד ${formatHebrewDate(expires)}`
                       : 'אין גישה'
                   }
@@ -257,7 +266,11 @@ export default function AdminUsers() {
         <Dialog style={styles.dialog} visible={!!grantFor} onDismiss={() => setGrantFor(null)}>
           <Dialog.Title>{grantFor?.expiresAt ? 'שינוי תאריך הגישה' : 'פתיחת גישה'} — {grantFor?.username}</Dialog.Title>
           <Dialog.Content>
-            {!!grantUntil && (
+            <View style={styles.unlimitedRow}>
+              <Text variant="bodyLarge">ללא הגבלת זמן</Text>
+              <Toggle value={grantUnlimited} onValueChange={setGrantUnlimited} />
+            </View>
+            {!!grantUntil && !grantUnlimited && (
               <HebrewDatePicker label="הגישה בתוקף עד" value={grantUntil} onChange={setGrantUntil} />
             )}
           </Dialog.Content>
@@ -310,6 +323,9 @@ const styles = StyleSheet.create({
   // a wide browser window they stretched edge to edge.
   dialog: Platform.OS === 'web' ? { width: '100%', maxWidth: 440, alignSelf: 'center' } : {},
   flex: { flex: 1 },
+  unlimitedRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12,
+  },
   search: { margin: 16, marginBottom: 8 },
   list: { padding: 16, paddingTop: 8, gap: 10 },
   card: { backgroundColor: colors.surface, borderRadius: 16 },

@@ -10,6 +10,7 @@ import Tabs from '@/components/Tabs';
 import { formatHebrewDate } from '@/lib/hebrewDate';
 import HeaderTitle from '@/components/HeaderTitle';
 import { CATEGORIES, CATEGORY_LABEL, type Category } from '@/lib/categories';
+import { isUnlimited, SHOW_LOCKED } from '@/lib/access';
 import { APP_NAME, colors, fonts, WHATSAPP_URL, appbarStyle } from '@/lib/theme';
 
 type Lesson = {
@@ -51,7 +52,8 @@ export default function Lessons() {
   };
 
   // The end date Idit chose. Shown as a fact, never as a period ("a year").
-  const expiry = accessExpiresAt ? formatHebrewDate(accessExpiresAt) : null;
+  const expiry = accessExpiresAt && !isUnlimited(accessExpiresAt)
+    ? formatHebrewDate(accessExpiresAt) : null;
 
   return (
     <View style={styles.flex}>
@@ -68,7 +70,7 @@ export default function Lessons() {
         <Appbar.Action icon="logout" onPress={signOut} />
       </Appbar.Header>
 
-      {!hasAccess && (
+      {!hasAccess && SHOW_LOCKED && (
         <Banner
           visible
           icon="lock-outline"
@@ -97,7 +99,8 @@ export default function Lessons() {
         <ActivityIndicator style={styles.loader} size="large" />
       ) : (
         <FlatList
-          data={lessons.filter((l) => l.category === category)}
+          data={lessons.filter((l) => l.category === category
+            && (SHOW_LOCKED || hasAccess || l.is_free))}
           keyExtractor={(l) => l.id}
           contentContainerStyle={styles.list}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}

@@ -9,6 +9,7 @@ import BackAction from '@/components/BackAction';
 import Tabs from '@/components/Tabs';
 import { useAuth } from '@/context/auth';
 import { CATEGORY_ITEM, type Category } from '@/lib/categories';
+import Bar from '@/components/Bar';
 import { colors, appbarStyle } from '@/lib/theme';
 
 type LessonStat = {
@@ -220,16 +221,6 @@ function StudentCard({ student }: { student: Student }) {
   );
 }
 
-// Paper's ProgressBar reserved far more height than it drew on web, which
-// pushed the listener list down behind the next card. A plain bar is enough.
-function Bar({ percent, height }: { percent: number; height: number }) {
-  return (
-    <View style={[styles.track, { height, borderRadius: height / 2 }]}>
-      <View style={[styles.fill, { width: `${Math.max(0, Math.min(100, percent))}%`, borderRadius: height / 2 }]} />
-    </View>
-  );
-}
-
 function Number({ label, value }: { label: string; value: number }) {
   return (
     <View style={styles.number}>
@@ -254,8 +245,6 @@ const styles = StyleSheet.create({
   number: { alignItems: 'center', minWidth: 48 },
   numberValue: { color: colors.primary },
   muted: { color: colors.textSecondary },
-  track: { backgroundColor: colors.outline, overflow: 'hidden' },
-  fill: { height: '100%', backgroundColor: colors.primary },
   link: { color: colors.primary, marginTop: 4 },
   listeners: { gap: 10, marginTop: 4 },
   listener: { gap: 4 },

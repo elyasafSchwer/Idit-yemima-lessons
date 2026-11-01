@@ -10,6 +10,7 @@ import { useAuth } from '@/context/auth';
 import LessonPlayer from '@/components/LessonPlayer';
 import { CATEGORY_ITEM, CATEGORY_LABEL, type Category } from '@/lib/categories';
 import { colors, fonts, appbarStyle } from '@/lib/theme';
+import { SHOW_LOCKED } from '@/lib/access';
 
 type Track = { id: string; kind: 'full' | 'summary'; duration_seconds: number | null; status: string };
 type Lesson = {
@@ -85,7 +86,7 @@ export default function LessonDetail() {
             {[label, lesson.lesson_date ? formatHebrewDate(lesson.lesson_date) : null]
               .filter(Boolean).join(', ')}
           </Text>
-          {(lesson.is_free || locked) && (
+          {(lesson.is_free || (locked && SHOW_LOCKED)) && (
             <Text variant="labelMedium" style={locked ? styles.locked : styles.free}>
               {locked ? 'נעול' : 'פתוח לכולן'}
             </Text>
