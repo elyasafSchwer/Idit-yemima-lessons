@@ -86,7 +86,7 @@ export default function LessonDetail() {
             {[label, lesson.lesson_date ? formatHebrewDate(lesson.lesson_date) : null]
               .filter(Boolean).join(', ')}
           </Text>
-          {(lesson.is_free || (locked && SHOW_LOCKED)) && (
+          {SHOW_LOCKED && (lesson.is_free || locked) && (
             <Text variant="labelMedium" style={locked ? styles.locked : styles.free}>
               {locked ? 'נעול' : 'פתוח לכולן'}
             </Text>

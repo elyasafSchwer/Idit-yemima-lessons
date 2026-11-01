@@ -155,7 +155,7 @@ function LessonRow({ lesson, locked, onPress }: { lesson: Lesson; locked: boolea
           {!!lesson.lesson_date && (
             <Text variant="bodySmall" style={styles.rowDate}>{formatHebrewDate(lesson.lesson_date)}</Text>
           )}
-          {lesson.is_free && <Text variant="labelSmall" style={styles.free}>פתוח לכולן</Text>}
+          {SHOW_LOCKED && lesson.is_free && <Text variant="labelSmall" style={styles.free}>פתוח לכולן</Text>}
         </View>
       </View>
       <View style={styles.rowEnd}>
