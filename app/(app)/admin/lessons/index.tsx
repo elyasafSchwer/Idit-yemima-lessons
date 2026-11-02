@@ -118,7 +118,7 @@ export default function ManageLessons() {
     setBusy(lesson.id);
     // The function also removes the recording's files, which a plain row
     // delete would leave in storage.
-    const { error } = await supabase.functions.invoke('admin-delete-lesson', {
+    const { data, error } = await supabase.functions.invoke('admin-delete-lesson', {
       body: { lessonId: lesson.id },
     });
     setBusy(null);
@@ -126,6 +126,7 @@ export default function ManageLessons() {
       && (error.context as Response | undefined)?.status === 409;
     setToast(processing ? 'אי אפשר למחוק בזמן עיבוד. כדאי לנסות שוב בעוד כמה דקות.'
       : error ? 'המחיקה נכשלה'
+      : data?.cleanupFailed ? `ה${CATEGORY_ITEM[lesson.category]} נמחק, אבל חלק מהקבצים נשארו בשרת`
       : `ה${CATEGORY_ITEM[lesson.category]} נמחק`);
     load();
   };

@@ -10,20 +10,19 @@ import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2';
 import { corsHeaders, json } from '../_shared/cors.ts';
 
 const BUCKETS = ['lessons', 'incoming'];
+const KINDS = ['full', 'summary'];
 const PAGE = 1000;
 
-// Storage has no "delete folder": list every object under the prefix,
-// descending into sub-folders (entries without an id), then remove by path.
-async function listAll(db: SupabaseClient, bucket: string, prefix: string): Promise<string[]> {
+// Storage has no "delete folder", so every object is listed and removed by
+// path. Recordings live at <lesson>/<kind>/<file>; the folder is listed with a
+// trailing slash, the same form the ingest workflow uses to find its parts.
+async function listFolder(db: SupabaseClient, bucket: string, folder: string): Promise<string[]> {
   const paths: string[] = [];
   for (let offset = 0; ; offset += PAGE) {
-    const { data, error } = await db.storage.from(bucket).list(prefix, { limit: PAGE, offset });
+    const { data, error } = await db.storage.from(bucket)
+      .list(`${folder}/`, { limit: PAGE, offset, sortBy: { column: 'name', order: 'asc' } });
     if (error) throw error;
-    for (const entry of data) {
-      const path = `${prefix}/${entry.name}`;
-      if (entry.id === null) paths.push(...await listAll(db, bucket, path));
-      else paths.push(path);
-    }
+    paths.push(...data.filter((e) => e.id).map((e) => `${folder}/${e.name}`));
     if (data.length < PAGE) return paths;
   }
 }
@@ -86,17 +85,20 @@ Deno.serve(async (req) => {
   let removed = 0;
   try {
     for (const bucket of BUCKETS) {
-      const paths = await listAll(admin, bucket, lessonId);
-      for (let i = 0; i < paths.length; i += PAGE) {
-        const { error } = await admin.storage.from(bucket).remove(paths.slice(i, i + PAGE));
-        if (error) throw error;
+      for (const kind of KINDS) {
+        const paths = await listFolder(admin, bucket, `${lessonId}/${kind}`);
+        for (let i = 0; i < paths.length; i += PAGE) {
+          const { data, error } = await admin.storage.from(bucket).remove(paths.slice(i, i + PAGE));
+          if (error) throw error;
+          removed += data.length;
+        }
       }
-      removed += paths.length;
     }
   } catch (e) {
     console.error('storage cleanup failed', lessonId, e);
     return json({ ok: true, filesRemoved: removed, cleanupFailed: true });
   }
 
+  console.log('deleted lesson', lessonId, 'files removed:', removed);
   return json({ ok: true, filesRemoved: removed });
 });
