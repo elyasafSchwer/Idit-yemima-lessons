@@ -116,9 +116,17 @@ export default function ManageLessons() {
     const lesson = deleteTarget;
     setDeleteTarget(null);
     setBusy(lesson.id);
-    const { error } = await supabase.from('lessons').delete().eq('id', lesson.id);
+    // The function also removes the recording's files, which a plain row
+    // delete would leave in storage.
+    const { error } = await supabase.functions.invoke('admin-delete-lesson', {
+      body: { lessonId: lesson.id },
+    });
     setBusy(null);
-    setToast(error ? 'המחיקה נכשלה' : `ה${CATEGORY_ITEM[lesson.category]} נמחק`);
+    const processing = error && 'context' in error
+      && (error.context as Response | undefined)?.status === 409;
+    setToast(processing ? 'אי אפשר למחוק בזמן עיבוד. כדאי לנסות שוב בעוד כמה דקות.'
+      : error ? 'המחיקה נכשלה'
+      : `ה${CATEGORY_ITEM[lesson.category]} נמחק`);
     load();
   };
 

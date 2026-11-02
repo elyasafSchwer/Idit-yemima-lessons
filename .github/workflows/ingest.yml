@@ -82,6 +82,27 @@ jobs:
             --kind "${{ steps.inputs.outputs.kind }}" \
             $(printf 'parts/%s ' "${ORDERED[@]}")
 
+      # The raw parts are only needed to retry a failed run, so they go once the
+      # recording is published. Runs only on success: a failed job keeps them
+      # for "נסי שוב". A cleanup error must not fail an ingest that worked.
+      - name: Remove raw parts
+        continue-on-error: true
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          LESSON: ${{ steps.inputs.outputs.lesson_id }}
+          KIND: ${{ steps.inputs.outputs.kind }}
+        run: |
+          set -euo pipefail
+          BODY=$(python3 -c "
+          import json, os
+          names = [l.strip() for l in open('names.txt') if l.strip()]
+          print(json.dumps({'prefixes': [f\"{os.environ['LESSON']}/{os.environ['KIND']}/{n}\" for n in names]}))")
+          curl -sS -f -X DELETE "$SUPABASE_URL/storage/v1/object/incoming" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Content-Type: application/json" -d "$BODY" -o /dev/null
+          echo "removed $(wc -l < names.txt) raw parts"
+
       - name: Mark the job done
         if: always()
         env:
